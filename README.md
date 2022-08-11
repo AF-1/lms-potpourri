@@ -10,7 +10,7 @@ A collection of various small features.
 ## Features:
 - **Invert** or **randomize** the track order of **saved static playlists** (context menu).
 - Set a **power-on volume level for players** that's enforced when players are switched on.[^1] The (sub)menu is listed on the *LMS Settings > Player* page.
-- Set a **time to turn off *all** players** each day. No more worries about idle players that you forgot to switch off.
+- Set a **time to turn off *all* players** each day. No more worries about idle players that you forgot to switch off.
 
 <br><br><br>
 
