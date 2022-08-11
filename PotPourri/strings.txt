@@ -1,0 +1,84 @@
+PLUGIN_POTPOURRI
+	EN	PotPourri
+
+PLUGIN_POTPOURRI_DESC
+	EN	A collection of various small features. More information on the GitHub page.
+
+PLUGIN_POTPOURRI_LOG_DESC
+	EN	Log of plugin PotPourri
+
+
+PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST
+	EN	Home Menu Link to Playlist
+
+PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST_DESC
+	EN	Creates a link to a playlist of your choice on the home menu (top) level for quick access.<br>Example: if you use one of your playlists to gather favorite tracks as an alternative to the Favorites menu.
+
+PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST_NONE
+	EN	none
+
+PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST_ALTNAME
+	EN	Use alternative menu name
+
+PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST_ALTNAME_DESC
+	EN	Choose a different name for your home menu item than the name of the playlist it links to.
+
+
+PLUGIN_POTPOURRI_PL_RANDOMIZE
+	EN	Randomize order of playlist tracks
+
+PLUGIN_POTPOURRI_PL_INVERT
+	EN	Invert order of playlist tracks
+
+PLUGIN_POTPOURRI_WEB_PLINFO
+	EN	Information
+
+PLUGIN_POTPOURRI_WEB_PLACTIONSFEEDBACK_RANDOMIZED
+	EN	Randomized track order of playlist 
+
+PLUGIN_POTPOURRI_WEB_PLACTIONSFEEDBACK_INVERTED
+	EN	Inverted track order of playlist 
+
+
+PLUGIN_POTPOURRI_STARTVOLUME
+	EN	Player Power-On Volume
+
+PLUGIN_POTPOURRI_ENABLE
+	EN	Change player power-on volume
+
+PLUGIN_POTPOURRI_ENABLE_DESC
+	EN	<b>Disabled</b>: Do nothing when a player is powered on.<br><br><b>Set to preset value</b>: Set the volume of a player to a <i>preset</i> value of your choice when the player is turned on.<br><br><b>Set to last value</b>: Devices remember their previous volume level. If for some reason this not the case, setting the volume of a device to the last value <i>with this plugin</i> could be a workaround.
+
+PLUGIN_POTPOURRI_DISABLED
+	EN	Disabled
+
+PLUGIN_POTPOURRI_ENABLED_PRESETVAL
+	EN	Set to preset value
+
+PLUGIN_POTPOURRI_ENABLED_LASTVAL
+	EN	Set to last value
+
+PLUGIN_POTPOURRI_PRESETVOLUME
+	EN	Preset volume
+
+PLUGIN_POTPOURRI_PRESETVOLUME_DESC
+	EN	Volume level to be set when the player is turned on.
+
+PLUGIN_POTPOURRI_RAISE
+	EN	Allow raising volume
+
+PLUGIN_POTPOURRI_RAISE_DESC
+	EN	If the <b>last</b> volume of a player was <b>below</b> the <b>preset</b> level when the player was turned off, leave it there rather than raising it.
+
+
+PLUGIN_POTPOURRI_SETTINGS_SCHEDULED_POWEROFF
+	EN	Scheduled power off
+
+PLUGIN_POTPOURRI_SETTINGS_SCHEDULED_POWEROFF_DESC
+	EN	Set a time to automatically switch off <b>all</b> players.
+
+PLUGIN_POTPOURRI_SETTINGS_POWEROFFTIME
+	EN	Power off time
+
+PLUGIN_POTPOURRI_SETTINGS_POWEROFFTIME_DESC
+	EN	When to switch all players off.

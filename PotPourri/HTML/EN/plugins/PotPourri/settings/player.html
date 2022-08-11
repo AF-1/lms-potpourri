@@ -1,0 +1,25 @@
+<style>.presetvaluesection{[% IF prefs.enabledsetstartvolumelevel != 1 %]display:none;[% END %]}</style>
+[% PROCESS settings/header.html %]
+	[% WRAPPER setting title="PLUGIN_POTPOURRI_ENABLE" desc="PLUGIN_POTPOURRI_ENABLE_DESC" %]
+		<select name="pref_enabledsetstartvolumelevel" id="enabledsetstartvolumelevel">
+			[% FOREACH option = {
+				'0' => 'PLUGIN_POTPOURRI_DISABLED',
+				'1' => 'PLUGIN_POTPOURRI_ENABLED_PRESETVAL',
+				'2' => 'PLUGIN_POTPOURRI_ENABLED_LASTVAL',
+			} %]
+				<option [% IF prefs.enabledsetstartvolumelevel == option.key %]selected='selected' [% END %]value="[% option.key %]">[% option.value | string %]</option>
+			[%- END -%]
+		</select>
+	[% END %]
+
+<div class="presetvaluesection">
+	[% WRAPPER setting title="PLUGIN_POTPOURRI_PRESETVOLUME" desc="PLUGIN_POTPOURRI_PRESETVOLUME_DESC" %]
+		<input type="text" class="stdedit sliderInput_0_100" name="pref_presetVolume" id="presetVolume" value="[% IF prefs.presetVolume %][% prefs.presetVolume %][% ELSE %]18[% END %]" size="2">
+		[% END %]
+
+	[% WRAPPER setting title="PLUGIN_POTPOURRI_RAISE" desc="PLUGIN_POTPOURRI_RAISE_DESC" %]
+		<input type="checkbox" class="stdedit" name="pref_allowRaise"[% IF prefs.allowRaise %] checked[% END %]>
+	[% END %]
+</div>
+
+[% PROCESS settings/footer.html %]

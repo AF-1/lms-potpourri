@@ -1,0 +1,32 @@
+[% PROCESS settings/header.html %]
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST" desc="PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST_DESC" %]
+[% IF playlistcount %]
+	<select name="pref_toplevelplaylistname" id="toplevelplaylistname">
+		[% FOREACH plist = allplaylists %]
+			<option [% IF plist.chosen %]selected='selected' [% END %]value="[% plist.playlist %]">[% IF plist.playlist == 'none' %][% "PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST_NONE" | string %][% ELSE %][% plist.playlist %][% END %]</option>
+		[% END %]
+	</select>
+[% ELSE %]
+	<span style="text-align: center;">[% "PLUGIN_POTPOURRI_SETTINGS_PLAYLISTS_NOPLFOUND" | string %]</span>
+[% END %]
+[% END %]
+[% IF homemenuplaylist %]
+	<br>
+
+	[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST_ALTNAME" desc="PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST_ALTNAME_DESC" %]
+		<input type="text" class="stdedit" name="pref_alterativetoplevelplaylistname" id="alterativetoplevelplaylistname" value="[% prefs.alterativetoplevelplaylistname %]">
+	[% END %]
+[% END %]
+<br>
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_SCHEDULED_POWEROFF" desc="PLUGIN_POTPOURRI_SETTINGS_SCHEDULED_POWEROFF_DESC" %]
+	<input name="pref_enablescheduledclientspoweroff" id="enablescheduledclientspoweroff" type="checkbox"[% IF prefs.enablescheduledclientspoweroff %] checked[% END %]>
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_POWEROFFTIME" desc="PLUGIN_POTPOURRI_SETTINGS_POWEROFFTIME_DESC" %]
+	<input type="text" class="stdedit" name="pref_powerofftime" id="powerofftime" value="[% prefs.powerofftime %]" size="3">
+[% END %]
+<br>
+
+[% PROCESS settings/footer.html %]

@@ -1,0 +1,14 @@
+[% IF action==1;thisname = 'PLUGIN_POTPOURRI_PL_RANDOMIZE' | string;ELSE;thisname = 'PLUGIN_POTPOURRI_PL_INVERT' | string;END %]
+[% pagetitle = 'PLUGIN_POTPOURRI_WEB_PLINFO' | string; pagetitle = pagetitle _ " (" _ playlistname _ ") > " _ thisname %]
+[% pwd_list = [ pagetitle ] %]
+[% PROCESS pageheader.html %]
+<style>
+@charset "UTF-8";
+.wrapper {padding: 5px;}
+.rltitlebold{font-weight:bold;
+</style>
+<br>
+	<div class="wrapper">
+	[% IF action == 1 %][% "PLUGIN_POTPOURRI_WEB_PLACTIONSFEEDBACK_RANDOMIZED" | string %][% ELSE %][% "PLUGIN_POTPOURRI_WEB_PLACTIONSFEEDBACK_INVERTED" | string %][% END %]<span class="rltitlebold">[% playlistname %]</span>
+	</div>
+[% PROCESS pagefooter.html %]

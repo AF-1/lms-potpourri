@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<extension>
+	<id>af75ac4f-d757-7cdb-b390-dbea4791f646</id>
+	<name>PLUGIN_POTPOURRI</name>
+	<module>Plugins::PotPourri::Plugin</module>
+	<version>0.1.0</version>
+	<description>PLUGIN_POTPOURRI_DESC</description>
+	<creator>AF</creator>
+	<optionsURL>plugins/PotPourri/settings/settings.html</optionsURL>
+	<defaultState>enabled</defaultState>
+	<targetApplication>
+		<id>Logitech Media Server</id>
+		<minVersion>8.2</minVersion>
+		<maxVersion>*</maxVersion>
+	</targetApplication>
+</extension>
