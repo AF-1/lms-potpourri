@@ -138,7 +138,6 @@ sub powerOffClientsScheduler {
 			} else {
 				my $timeleft = $powerOffTime - $currenttime;
 				$timeleft = $timeleft + 24 * 60 * 60 if $timeleft < 0; # it's past powerOffTime -> schedule for same time tomorrow
-
 				$log->debug(parse_duration($timeleft)." until next scheduled power-off at ".parse_duration($powerOffTime));
 				Slim::Utils::Timers::setTimer(0, time() + $timeleft, \&powerOffClients);
 			}
@@ -147,10 +146,13 @@ sub powerOffClientsScheduler {
 }
 
 sub powerOffClients {
-	$log->debug('Powering off all players!!!');
+	$log->debug('Killing existing timers for powerOffClientsScheduler');
+	Slim::Utils::Timers::killOneTimer(undef, \&powerOffClientsScheduler);
+	$log->info('Powering off all players!!!');
 	foreach my $client (Slim::Player::Client::clients()) {
 		$client->power(0) if $client->power();
 	}
+	Slim::Utils::Timers::setTimer(0, time() + 70, \&powerOffClientsScheduler);
 }
 
 
