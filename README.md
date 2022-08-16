@@ -17,12 +17,12 @@ A collection of various small features.
 
 ## Installation
 
-### Using the repository URL
+### <strike>Using the repository URL
 
 - Add the repository URL below at the bottom of *LMS* > *Settings* > *Plugins* and click *Apply*:
 [https://raw.githubusercontent.com/AF-1/lms-potpourri/main/public.xml](https://raw.githubusercontent.com/AF-1/lms-potpourri/main/public.xml)
 
-- Install the new version.
+- Install the new version.</strike>
 <br>
 
 ### Manual Install
