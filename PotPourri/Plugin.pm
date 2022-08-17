@@ -46,7 +46,6 @@ my $log = Slim::Utils::Log->addLogCategory({
 my $serverPrefs = preferences('server');
 my $prefs = preferences('plugin.potpourri');
 
-
 sub initPlugin {
 	my $class = shift;
 	$class->SUPER::initPlugin(@_);
@@ -80,7 +79,7 @@ sub initPlugin {
 sub initPrefs {
 	$prefs->init({
 		toplevelplaylistname => 'none',
-		powerofftime => '15:08',
+		powerofftime => '01:30',
 	});
 
 	$prefs->setValidate({
@@ -110,11 +109,12 @@ sub postinitPlugin {
 }
 
 sub powerOffClientsScheduler {
-		$log->debug('Killing existing timers for scheduled power-off');
-		Slim::Utils::Timers::killOneTimer(undef, \&powerOffClients);
-		my $enableScheduledClientsPowerOff = $prefs->get('enablescheduledclientspoweroff');
-		if ($enableScheduledClientsPowerOff) {
-		my $powerOffTime = $prefs->get('powerofftime');
+	$log->debug('Killing existing timers for scheduled power-off');
+	Slim::Utils::Timers::killOneTimer(undef, \&powerOffClientsScheduler);
+	my $enableScheduledClientsPowerOff = $prefs->get('enablescheduledclientspoweroff');
+	if ($enableScheduledClientsPowerOff) {
+		my ($powerOffTimeUnparsed, $powerOffTime);
+		$powerOffTimeUnparsed = $powerOffTime = $prefs->get('powerofftime');
 
 		if (defined($powerOffTime) && $powerOffTime ne '') {
 			my $time = 0;
@@ -132,29 +132,25 @@ sub powerOffClientsScheduler {
 			my $currenttime = $hour * 60 * 60 + $min * 60;
 
 			if ($currenttime == $powerOffTime) {
-				$log->debug('Current time '.parse_duration($currenttime).' = scheduled power-off time '.parse_duration($powerOffTime).'. Powering off all players now');
-				powerOffClients();
-				return;
+				$log->info('Current time '.parse_duration($currenttime).' = scheduled power-off time '.$powerOffTimeUnparsed.'. Powering off all players now.');
+				foreach my $client (Slim::Player::Client::clients()) {
+					if ($client->power()) {
+						$client->stop() if $client->isPlaying();
+						$client->power(0);
+					}
+				}
+				Slim::Utils::Timers::setTimer(undef, time() + 120, \&powerOffClientsScheduler);
 			} else {
 				my $timeleft = $powerOffTime - $currenttime;
 				$timeleft = $timeleft + 24 * 60 * 60 if $timeleft < 0; # it's past powerOffTime -> schedule for same time tomorrow
-				$log->debug(parse_duration($timeleft)." until next scheduled power-off at ".parse_duration($powerOffTime));
-				Slim::Utils::Timers::setTimer(0, time() + $timeleft, \&powerOffClients);
+				$log->info(parse_duration($timeleft)." until next scheduled power-off at ".$powerOffTimeUnparsed);
+				Slim::Utils::Timers::setTimer(undef, time() + $timeleft, \&powerOffClientsScheduler);
 			}
+		} else {
+			$log->warn('powerOffTime = not defined or empty string');
 		}
 	}
 }
-
-sub powerOffClients {
-	$log->debug('Killing existing timers for powerOffClientsScheduler');
-	Slim::Utils::Timers::killOneTimer(undef, \&powerOffClientsScheduler);
-	$log->info('Powering off all players!!!');
-	foreach my $client (Slim::Player::Client::clients()) {
-		$client->power(0) if $client->power();
-	}
-	Slim::Utils::Timers::setTimer(0, time() + 70, \&powerOffClientsScheduler);
-}
-
 
 sub initPLtoplevellink {
 	$log->debug('Started initializing playlist toplevel link.');
