@@ -8,6 +8,12 @@ PLUGIN_POTPOURRI_LOG_DESC
 	EN	Log of plugin PotPourri
 
 
+PLUGIN_POTPOURRI_SETTINGS_GITHUB_LINK_TEXT
+	EN	Click here for more information.
+
+PLUGIN_POTPOURRI_SETTINGS_GITHUB_LINK
+	EN	https://github.com/AF-1/lms-potpourri#potpourri
+
 PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST
 	EN	Home Menu Link to Playlist
 
@@ -34,10 +40,10 @@ PLUGIN_POTPOURRI_WEB_PLINFO
 	EN	Information
 
 PLUGIN_POTPOURRI_WEB_PLACTIONSFEEDBACK_RANDOMIZED
-	EN	Randomized track order of playlist 
+	EN	Randomized track order of playlist
 
 PLUGIN_POTPOURRI_WEB_PLACTIONSFEEDBACK_INVERTED
-	EN	Inverted track order of playlist 
+	EN	Inverted track order of playlist
 
 
 PLUGIN_POTPOURRI_STARTVOLUME

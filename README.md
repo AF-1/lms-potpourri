@@ -4,6 +4,8 @@ PotPourri
 A plugin for [Logitech Media Server](https://github.com/Logitech/slimserver)<br>
 
 A collection of various small features.
+<br><br>
+[⬅️ **Back to the list of all plugins**](https://github.com/AF-1/)
 <br><br><br>
 
 
