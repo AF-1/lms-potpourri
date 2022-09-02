@@ -40,7 +40,7 @@ use Plugins::PotPourri::Settings;
 
 my $log = Slim::Utils::Log->addLogCategory({
 	'category' => 'plugin.potpourri',
-	'defaultLevel' => 'WARN',
+	'defaultLevel' => 'ERROR',
 	'description' => 'PLUGIN_POTPOURRI',
 });
 my $serverPrefs = preferences('server');
