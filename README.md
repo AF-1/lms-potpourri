@@ -34,8 +34,7 @@ Please read notes on how to [install a plugin manually](https://github.com/AF-1/
 
 ## Reporting a bug
 
-If you think that you've found a bug, open an [**issue here on GitHub**](https://github.com/AF-1/lms-potpourri/issues) and fill out the ***Bug report* issue template**.<br>
-**Don't** post bug reports on the LMS forum.
+If you think that you've found a bug, open an [**issue here on GitHub**](https://github.com/AF-1/lms-potpourri/issues) and fill out the ***Bug report* issue template**. Please post bug reports on **GitHub only**.
 <br><br><br><br>
 
 [^1]:based on parts of E. Koldinger's [**Reset Volume**](https://github.com/koldinger/ResetVolume)
