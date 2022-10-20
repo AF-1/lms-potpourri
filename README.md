@@ -29,7 +29,7 @@ A collection of various small features.
 
 ### Manual Install
 
-Please read notes on how to [install a plugin manually](https://github.com/AF-1/sobras/wiki/Manual-installation-of-LMS-plugins).
+Please read the instructions on how to [install a plugin manually](https://github.com/AF-1/sobras/wiki/Manual-installation-of-LMS-plugins).
 <br><br><br>
 
 ## Reporting a bug
