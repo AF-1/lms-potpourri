@@ -1,0 +1,70 @@
+[% thisname = 'PLUGIN_POTPOURRI_PLSORTORDER_OPTIONS' | string %]
+[% pagetitle = 'PLUGIN_POTPOURRI_WEB_PLINFO' | string; pagetitle = pagetitle _ " (" _ playlistname _ ") > " _ thisname %]
+[% pwd_list = [ pagetitle ] %]
+[% PROCESS pageheader.html %]
+<style>.wrapper{padding:5px;}.titlebold{font-weight:bold};.padleft{padding-left:5px;}.pptbutton{padding:2px;}.btncenter{text-align:center;}.filler{height:15px;}.warning{color:red;}</style>
+<br>
+<div class="wrapper">
+	<span class="titlebold">[% "PLUGIN_POTPOURRI_PL_SORTORDER_OPTIONS_HEADER" | string %]</span>
+</div>
+<form action="[% webroot %]plugins/PotPourri/html/playlistsortorderoptions.html" name="sortOrderForm" method="post">
+	<div class="wrapper">
+		<table>
+			<tr>
+				<td>
+					<select name="sortoption">
+						<option value="1">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_RANDOMIZE" | string %]</option>
+						<option value="2">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_INVERT" | string %]</option>
+						<option value="3">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_ARTIST" | string %]</option>
+						<option value="4">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_ALBUM_ARTIST" | string %]</option>
+						<option value="5">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_ALBUM" | string %]</option>
+						<option value="6">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_GENRE" | string %]</option>
+						<option value="7">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_YEAR" | string %]</option>
+						<option value="8">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_TRACKNUMBER" | string %]</option>
+						<option value="9">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_TRACKTITLE" | string %]</option>
+						<option value="10">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_DATE_ADDED" | string %]</option>
+						<option value="11">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_PLAYCOUNT" | string %]</option>
+						[% IF apc_enabled %]
+						<option value="12">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_PLAYCOUNT_APC" | string %]</option>
+						[% END %]
+						<option value="13">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_DATE_LASTPLAYED" | string %]</option>
+						[% IF apc_enabled %]
+						<option value="14">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_DATE_LASTPLAYED_APC" | string %]</option>
+						[% END %]
+						<option value="15">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_RATING" | string %]</option>
+						[% IF apc_enabled %]
+						<option value="16">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_DPSV_APC" | string %]</option>
+						[% END %]
+						<option value="17">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_DURATION" | string %]</option>
+						<option value="18">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_BPM" | string %]</option>
+						<option value="19">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_BITRATE" | string %]</option>
+						<option value="20">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_ALBUMARTIST" | string %]</option>
+						<option value="21">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_COMPOSER" | string %]</option>
+						<option value="22">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_CONDUCTOR" | string %]</option>
+						<option value="23">[% "PLUGIN_POTPOURRI_PL_SORTOPTIONS_BAND" | string %]</option>
+					</select>
+				</td>
+			</tr>
+			<tr class="filler">&nbsp;</tr>
+			<input type="hidden" name="playlistid" value="[% playlistid %]">
+			<input type="hidden" name="playlistname" value="[% playlistname %]">
+			<tr>
+				<td class="btncenter">
+					<input class="pptbutton" type="submit" value="[% "PLUGIN_POTPOURRI_PL_SORTORDER_ORDER_BUTTON" | string %]">
+				</td>
+			</tr>
+		</table>
+	</div>
+</form>
+<br><br><br>
+<div class="wrapper warning">
+	[% IF failed %][% "PLUGIN_POTPOURRI_PL_SORTORDER_FAILED" | string %][% ELSE %][% "PLUGIN_POTPOURRI_PL_SORTORDER_WARNING" | string %][% END %]
+</div>
+
+[% IF orderchanged %]
+<script type="text/javascript">
+		setTimeout(location.href = "[% webroot %]clixmlbrowser/clicmd=browselibrary+items&linktitle=SAVED_PLAYLISTS&mode=playlists/?player=[% playerURI %]", 500);
+</script>
+[% END %]
+
+[% PROCESS pagefooter.html %]

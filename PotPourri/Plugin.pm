@@ -33,6 +33,7 @@ use Slim::Utils::Prefs;
 use Slim::Utils::Text;
 use Slim::Utils::Unicode;
 use List::Util qw(shuffle);
+use Time::HiRes qw(time);
 use Slim::Schema;
 use Data::Dumper;
 
@@ -45,6 +46,8 @@ my $log = Slim::Utils::Log->addLogCategory({
 });
 my $serverPrefs = preferences('server');
 my $prefs = preferences('plugin.potpourri');
+my %sortOptionLabels;
+my ($apc_enabled, $material_enabled);
 
 sub initPlugin {
 	my $class = shift;
@@ -56,21 +59,19 @@ sub initPlugin {
 		Plugins::PotPourri::Settings->new($class);
 		Plugins::PotPourri::PlayerSettings->new();
 	}
-	Slim::Web::Pages->addPageFunction('playlistactions', \&changePLtrackOrder_web);
 
-	Slim::Menu::PlaylistInfo->registerInfoProvider(potpourri_plrandomize => (
+	Slim::Menu::PlaylistInfo->registerInfoProvider(potpourri_changeplsortorder => (
+		after => 'addplaylist',
 		func => sub {
-			return objectInfoHandler(@_, 1);
-		},
-	));
-	Slim::Menu::PlaylistInfo->registerInfoProvider(potpourri_plinvert => (
-		after => 'potpourri_plrandomize',
-		func => sub {
-			return objectInfoHandler(@_, 2);
+			return playlistSortContextMenu(@_);
 		},
 	));
 
-	Slim::Control::Request::addDispatch(['potpourri', 'changeplaylisttrackorder', '_action', '_playlistid'], [0, 0, 1, \&changePLtrackOrder_jive]);
+	Slim::Web::Pages->addPageFunction('playlistsortorderselect', \&changePLtrackOrder_web);
+	Slim::Web::Pages->addPageFunction('playlistsortorderoptions.html', \&changePLtrackOrder_web);
+
+	Slim::Control::Request::addDispatch(['potpourri', 'changeplaylisttrackorderoptions', '_playlistid', '_playlistname'], [1, 1, 1, \&changePLtrackOrder_jive_choice]);
+	Slim::Control::Request::addDispatch(['potpourri', 'changeplaylisttrackorder', '_playlistid', '_sortoption', '_playlistname'], [1, 0, 1, \&changePLtrackOrder_jive]);
 
 	Slim::Control::Request::subscribe(\&setStartVolumeLevel,[['power']]);
 	Slim::Control::Request::subscribe(\&initPLtoplevellink,[['rescan'],['done']]);
@@ -99,9 +100,17 @@ sub initPrefs {
 			initPLtoplevellink();
 		}, 'toplevelplaylistname', 'alterativetoplevelplaylistname');
 	$prefs->setChange(\&powerOffClientsScheduler, 'enablescheduledclientspoweroff', 'powerofftime');
+
+	my $i = 1;
+	%sortOptionLabels = map { $i++ => $_ } ('Random order', 'Inverted order', 'Artist > album > disc no. > track no.', 'Album > artist > disc no. > track no.', 'Album > disc no. > track no.', 'Genre', 'Year', 'Track number', 'Track title', 'Date added', 'Play count', 'Play count (APC)', 'Date last played', 'Date last played (APC)', 'Rating', 'Dynamic played/skipped value (APC)', 'Track length', 'BPM', 'Bitrate', 'Album artist', 'Composer', 'Conductor', 'Band');
 }
 
 sub postinitPlugin {
+	$apc_enabled = Slim::Utils::PluginManager->isEnabled('Plugins::AlternativePlayCount::Plugin');
+	$log->debug('Plugin "Alternative Play Count" is enabled') if $apc_enabled;
+	$material_enabled = Slim::Utils::PluginManager->isEnabled('Plugins::MaterialSkin::Plugin');
+	$log->debug('Plugin "Material Skin" is enabled') if $material_enabled;
+
 	unless (!Slim::Schema::hasLibrary() || Slim::Music::Import->stillScanning) {
 		initPLtoplevellink();
 	}
@@ -194,91 +203,271 @@ sub initPLtoplevellink {
 	$log->debug('Finished initializing playlist toplevel link.');
 }
 
-sub objectInfoHandler {
-	my ($client, $url, $obj, $remoteMeta, $tags, $filter, $action) = @_;
+sub playlistSortContextMenu {
+	my ($client, $url, $obj, $remoteMeta, $tags) = @_;
 	$tags ||= {};
-
-	return undef if !$action;
 
 	my $playlistID= $obj->id;
 	my $playlistName = $obj->name;
-	my $name = $action == 1 ? $client->string('PLUGIN_POTPOURRI_PL_RANDOMIZE') : $client->string('PLUGIN_POTPOURRI_PL_INVERT');
-	my $jive = {};
+	$log->debug('playlist name = '.$playlistName.' ## playlist url = '.Dumper($url));
 
 	if ($tags->{menuMode}) {
-		my $actions = {
-			go => {
-				player => 0,
-				cmd => ['potpourri', 'changeplaylisttrackorder', $action, $playlistID],
-				nextWindow => 'parent',
-			},
-		};
-		$actions->{play} = $actions->{go};
-		$actions->{add} = $actions->{go};
-		$actions->{'add-hold'} = $actions->{go};
-		$jive->{'actions'} = $actions;
-
 		return {
-			type => 'text',
-			jive => $jive,
-			name => $name,
+			type => 'redirect',
+			jive => {
+				actions => {
+					go => {
+						player => 0,
+						cmd => ['potpourri', 'changeplaylisttrackorderoptions', $playlistID, $playlistName],
+					},
+				}
+			},
+			name => string('PLUGIN_POTPOURRI_PLSORTORDER_OPTIONS'),
 			favorites => 0,
 		};
-
 	} else {
 		return {
 			type => 'redirect',
-			name => $name,
+			name => $client->string('PLUGIN_POTPOURRI_PLSORTORDER_OPTIONS'),
 			favorites => 0,
 			web => {
-				url => 'plugins/PotPourri/playlistactions?playlistid='.$playlistID.'&action='.$action.'&playlistname='.$playlistName
+				url => 'plugins/PotPourri/playlistsortorderselect?playlistid='.$playlistID.'&playlistname='.$playlistName
 			},
 		};
 	}
 }
 
+sub changePLtrackOrder_web {
+	my ($client, $params, $callback, $httpClient, $response) = @_;
+
+	my $playlistID = $params->{playlistid};
+	my $playlistName = $params->{playlistname};
+	$log->debug('playlistID = '.$playlistID.' ## playlistName = '.Dumper($playlistName));
+
+	my $sortOption = $params->{sortoption};
+	$log->debug('sortOption = '.Dumper($sortOption));
+	$params->{playlistid} = $playlistID;
+	$params->{playlistname} = $playlistName;
+	$params->{apc_enabled} = 1 if $apc_enabled;
+
+	if ($sortOption) {
+		my $failed = changePLtrackOrder($playlistID, $sortOption, $playlistName);
+		if ($failed) {
+			$params->{failed} = 1;
+		} else {
+			$params->{orderchanged} = 1;
+		}
+	}
+	return Slim::Web::HTTP::filltemplatefile('plugins/PotPourri/html/playlistsortorderoptions.html', $params);
+}
+
+sub changePLtrackOrder_jive_choice {
+	my $request = shift;
+	my $client = $request->client();
+
+	if (!$request->isQuery([['potpourri'],['changeplaylisttrackorderoptions']])) {
+		$log->warn('incorrect command');
+		$request->setStatusBadDispatch();
+		return;
+	}
+	if (!defined $client) {
+		$log->warn('client required!');
+		$request->setStatusNeedsClient();
+		return;
+	}
+	my $playlistID = $request->getParam('_playlistid');
+	my $playlistName = $request->getParam('_playlistname');
+	$log->debug('playlistid = '.Dumper($playlistID));
+	return unless $playlistID;
+
+	my @sortOptionKeys = sort {$a <=> $b} keys (%sortOptionLabels);
+
+	my $windowTitle = string('PLUGIN_POTPOURRI_PLSORTORDER_OPTIONS');
+	$request->addResult('window', {text => $windowTitle});
+
+	my $cnt = 0;
+	foreach (@sortOptionKeys) {
+		next if $sortOptionLabels{$_} =~ '(APC)' && !$apc_enabled;
+		my $action = {
+			'do' => {
+				'player' => 0,
+				'cmd' => ['potpourri', 'changeplaylisttrackorder', $playlistID, $_, $playlistName],
+			},
+			'play' => {
+				'player' => 0,
+				'cmd' => ['potpourri', 'changeplaylisttrackorder', $playlistID, $_, $playlistName],
+			},
+		};
+		my $displayText = $sortOptionLabels{$_};
+
+		$request->addResultLoop('item_loop', $cnt, 'text', $displayText);
+		$request->addResultLoop('item_loop', $cnt, 'style', 'itemNoAction');
+		$request->addResultLoop('item_loop', $cnt, 'type', 'redirect');
+		$request->addResultLoop('item_loop', $cnt, 'actions', $action);
+		$request->addResultLoop('item_loop', $cnt, 'nextWindow', 'parent');
+		$cnt++;
+	}
+
+	$request->addResult('offset', 0);
+	$request->addResult('count', $cnt);
+	$request->setStatusDone();
+}
+
 sub changePLtrackOrder_jive {
 	my $request = shift;
+	my $client = $request->client();
+
 	if (!$request->isCommand([['potpourri'],['changeplaylisttrackorder']])) {
 		$log->warn('incorrect command');
 		$request->setStatusBadDispatch();
 		return;
 	}
-
-	my $action = $request->getParam('_action');
+	if (!defined $client) {
+		$log->warn('client required!');
+		$request->setStatusNeedsClient();
+		return;
+	}
 	my $playlistID = $request->getParam('_playlistid');
-	$log->debug('action = '.$action.' ## playlistid = '.$playlistID);
+	my $sortOption = $request->getParam('_sortoption');
+	my $playlistName = $request->getParam('_playlistname');
 
-	changePLtrackOrder($playlistID, $action);
+	return unless $playlistID && $sortOption;
+	$log->debug('playlistid = '.$playlistID.' ## sortOption = '.$sortOption);
+
+	my $failed = changePLtrackOrder($playlistID, $sortOption, $playlistName);
+
+	displayMessage($client, $failed);
+
 	$request->setStatusDone();
 }
 
-sub changePLtrackOrder_web {
-	my ($client, $params, $callback, $httpClient, $response) = @_;
-	my $playlistID = $params->{'playlistid'};
-	my $action = $params->{'action'};
-	$log->debug('playlistID = '.$playlistID.' ## action = '.$action);
-
-	my $failed = changePLtrackOrder($playlistID, $action);
-	return Slim::Web::HTTP::filltemplatefile('plugins/PotPourri/html/playlistactionsfb.html', $params) unless $failed;
-}
-
 sub changePLtrackOrder {
-	my ($playlistID, $action) = @_;
-	if (!$playlistID || !$action) {
-		$log->error('Missing playlist id or action.');
+	my ($playlistID, $sortOption, $playlistName) = @_;
+	if (!$playlistID || !$sortOption) {
+		$log->error('Missing playlist id or sort option');
 		return 1;
 	}
 
+	my $started = time();
 	my $playlist = Slim::Schema->find('Playlist', $playlistID);
 	return 1 if !blessed($playlist);
 
 	my @PLtracks = $playlist->tracks;
 	return 1 if scalar @PLtracks < 2;
 
-	@PLtracks = shuffle(shuffle(@PLtracks)) if $action == 1;
-	@PLtracks = reverse @PLtracks if $action == 2;
+	## sort playlist tracks
 
+	my $i = 1;
+
+	# Randomize
+	if ($sortOption == 1) {
+		@PLtracks = shuffle(shuffle(@PLtracks));
+
+	# Invert
+	} elsif ($sortOption == 2) {
+		@PLtracks = reverse @PLtracks
+
+	# By artist > album > disc no. > track no.
+	} elsif ($sortOption == 3) {
+		@PLtracks = sort {lc($a->artist->namesort) cmp lc($b->artist->namesort) || lc($a->album->namesort) cmp lc($b->album->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @PLtracks;
+
+	# By album > artist > disc no. > track no.
+	} elsif ($sortOption == 4) {
+		@PLtracks = sort {lc($a->album->namesort) cmp lc($b->album->namesort) || lc($a->artist->namesort) cmp lc($b->artist->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @PLtracks;
+
+	# By album > disc no. > track no.
+	} elsif ($sortOption == 5) {
+		@PLtracks = sort {lc($a->album->namesort) cmp lc($b->album->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @PLtracks;
+
+	# By first genre
+	} elsif ($sortOption == 6) {
+		@PLtracks = sort {lc($a->genre->namesort) cmp lc($b->genre->namesort)} @PLtracks;
+
+	# By year
+	} elsif ($sortOption == 7) {
+		@PLtracks = sort {($a->year || 0) <=> ($b->year || 0)} @PLtracks;
+
+	# By track number
+	} elsif ($sortOption == 8) {
+		@PLtracks = sort {($a->tracknum || 0) <=> ($b->tracknum || 0)} @PLtracks;
+
+	# By track title
+	} elsif ($sortOption == 9) {
+		@PLtracks = sort {lc($a->titlesort) cmp lc($b->titlesort)} @PLtracks;
+
+	# By date added
+	} elsif ($sortOption == 10) {
+		@PLtracks = sort {($a->addedTime || 0) <=> ($b->addedTime || 0)} @PLtracks;
+
+	# By play count
+	} elsif ($sortOption == 11) {
+		@PLtracks = sort {($b->playcount || 0) <=> ($a->playcount || 0)} @PLtracks;
+
+	# By play count (APC)
+	} elsif ($sortOption == 12) {
+		my %lookupHash;
+		foreach (@PLtracks) {
+			my $trackURLmd5 = $_->urlmd5;
+			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'playCount');
+		}
+		@PLtracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @PLtracks;
+
+	# By date last played
+	} elsif ($sortOption == 13) {
+		@PLtracks = sort {($b->lastplayed || 0) <=> ($a->lastplayed || 0)} @PLtracks;
+
+	# By date last played (APC)
+	} elsif ($sortOption == 14) {
+		my %lookupHash;
+		foreach (@PLtracks) {
+			my $trackURLmd5 = $_->urlmd5;
+			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'lastPlayed');
+		}
+		@PLtracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @PLtracks;
+
+	# By rating
+	} elsif ($sortOption == 15) {
+		@PLtracks = sort {($a->rating || 0) <=> ($b->rating || 0)} @PLtracks;
+
+	# By dynamic played/skipped value (DPSV) (APC)
+	} elsif ($sortOption == 16) {
+		my %lookupHash;
+		foreach (@PLtracks) {
+			my $trackURLmd5 = $_->urlmd5;
+			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'dynPSval');
+		}
+		@PLtracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @PLtracks;
+
+	# By duration
+	} elsif ($sortOption == 17) {
+		@PLtracks = sort {($a->secs || 0) <=> ($b->secs || 0)} @PLtracks;
+
+	# By BPM
+	} elsif ($sortOption == 18) {
+		@PLtracks = sort {($a->bpm || 0) <=> ($b->bpm || 0)} @PLtracks;
+
+	# By bitrate
+	} elsif ($sortOption == 19) {
+		@PLtracks = sort {($a->bitrate || 0) <=> ($b->bitrate || 0)} @PLtracks;
+
+	# By album artist
+	} elsif ($sortOption == 20) {
+		@PLtracks = sort {lc($a->album->contributor->namesort) cmp lc($b->album->contributor->namesort)} @PLtracks;
+
+	# By composer
+	} elsif ($sortOption == 21) {
+		@PLtracks = sort {lc($a->composer->namesort) cmp lc($b->composer->namesort)} @PLtracks;
+
+	# By conductor
+	} elsif ($sortOption == 22) {
+		@PLtracks = sort {lc($a->conductor->namesort) cmp lc($b->conductor->namesort)} @PLtracks;
+
+	# By band
+	} elsif ($sortOption == 23) {
+		@PLtracks = sort {lc($a->band->namesort) cmp lc($b->band->namesort)} @PLtracks;
+	}
+
+	# update and write playlist
 	$playlist->setTracks(\@PLtracks);
 	$playlist->update;
 
@@ -289,6 +478,12 @@ sub changePLtrackOrder {
 
 	Slim::Schema->forceCommit;
 	Slim::Schema->wipeCaches;
+	if ($playlistName) {
+		$log->info('Sorting the playlist "'.$playlistName.'" by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
+	} else {
+		$log->info('Sorting the playlist by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
+	}
+
 	return 0;
 }
 
@@ -320,6 +515,39 @@ sub setStartVolumeLevel {
 	}
 }
 
+
+sub APCquery {
+	my ($trackURLmd5, $queryType) = @_;
+	return if (!$trackURLmd5 || !$queryType);
+	my $dbh = getCurrentDBH();
+	my $returnVal;
+	my $sql = "select ifnull($queryType, 0) from alternativeplaycount where urlmd5 = \"$trackURLmd5\"";
+	my $sth = $dbh->prepare($sql);
+	$sth->execute();
+	$sth->bind_columns(undef, \$returnVal);
+	$sth->fetch();
+	$sth->finish();
+	$log->debug('Current APC '.$queryType.' for trackurlmd5 ('.$trackURLmd5.') = '.$returnVal);
+	return $returnVal;
+}
+
+sub displayMessage {
+	my ($client, $messageType) = @_;
+
+	my $message = '';
+	if ($messageType == 1) {
+		$message = string('PLUGIN_POTPOURRI_PL_SORTORDER_SUCCESS');
+	} else {
+		$message = string('PLUGIN_POTPOURRI_PL_SORTORDER_FAILED');
+	}
+
+	if (Slim::Buttons::Common::mode($client) !~ /^SCREENSAVER./) {
+		$client->showBriefly({'line' => [string('PLUGIN_POTPOURRI'), $message]}, 5);
+	}
+	if ($material_enabled) {
+		Slim::Control::Request::executeRequest(undef, ['material-skin', 'send-notif', 'type:info', 'msg:'.$message, 'client:'.$client->id, 'timeout:5']);
+	}
+}
 
 sub getPlaylistIDforName {
 	my $playlistname = shift;
@@ -367,6 +595,10 @@ sub isTimeOrEmpty {
 		return 1;
 	}
 	return 0;
+}
+
+sub getCurrentDBH {
+	return Slim::Schema->storage->dbh();
 }
 
 1;
