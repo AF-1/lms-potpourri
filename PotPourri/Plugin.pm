@@ -536,9 +536,9 @@ sub displayMessage {
 
 	my $message = '';
 	if ($messageType == 1) {
-		$message = string('PLUGIN_POTPOURRI_PL_SORTORDER_SUCCESS');
-	} else {
 		$message = string('PLUGIN_POTPOURRI_PL_SORTORDER_FAILED');
+	} else {
+		$message = string('PLUGIN_POTPOURRI_PL_SORTORDER_SUCCESS');
 	}
 
 	if (Slim::Buttons::Common::mode($client) !~ /^SCREENSAVER./) {
