@@ -24,7 +24,7 @@ use strict;
 use warnings;
 use utf8;
 
-use base qw(Slim::Plugin::Base);
+use base qw(Slim::Plugin::OPMLBased);
 
 use Scalar::Util qw(blessed);
 use Slim::Utils::Log;
@@ -49,9 +49,11 @@ my $prefs = preferences('plugin.potpourri');
 my %sortOptionLabels;
 my ($apc_enabled, $material_enabled);
 
+sub getDisplayName { 'PLUGIN_POTPOURRI' }
+
 sub initPlugin {
 	my $class = shift;
-	$class->SUPER::initPlugin(@_);
+	#$class->SUPER::initPlugin(@_);
 	initPrefs();
 	if (main::WEBUI) {
 		require Plugins::PotPourri::Settings;
@@ -75,7 +77,96 @@ sub initPlugin {
 
 	Slim::Control::Request::subscribe(\&setStartVolumeLevel,[['power']]);
 	Slim::Control::Request::subscribe(\&initPLtoplevellink,[['rescan'],['done']]);
+
+	$class->SUPER::initPlugin(
+		feed => \&handleFeed,
+		tag => 'potpourri',
+		is_app => 1,
+	);
 }
+
+sub handleFeed {
+	my ($client, $callback, $params, $args) = @_;
+	$log->debug('client ID:'.$client->name.' ## client ID:'.$client->id);
+
+	my $items = [
+		{
+			name => cstring($client, 'PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER').' '.$client->name,
+			type => 'link',
+			url => \&getSortOptions,
+		},
+	];
+	$callback->({
+		items => $items
+	});
+}
+
+sub getSortOptions {
+	my ($client, $cb, $params) = @_;
+
+	my @sortOptionKeys = sort {$a <=> $b} keys (%sortOptionLabels);
+
+	my $sortOptions = [];
+
+	foreach (@sortOptionKeys) {
+		next if $sortOptionLabels{$_} =~ '(APC)' && !$apc_enabled;
+		push @{$sortOptions}, {
+					name => $sortOptionLabels{$_},
+					url => \&changeClientPLTrackOrder,
+					passthrough => [{
+						sortOption => $_,
+					}],
+				};
+	}
+	$cb->($sortOptions);
+}
+
+sub changeClientPLTrackOrder {
+	my ($client, $cb, $params, $args) = @_;
+	return if !$client;
+
+	$log->info('client ID:'.$client->name.' ## client ID:'.$client->id);
+	my $started = time();
+
+	my $sortOption = $args->{'sortOption'};
+	$log->debug('sortOption = '.Dumper($sortOption));
+
+	my @PLtracks = @{Slim::Player::Playlist::playList($client)};
+
+	if (scalar @PLtracks < 2) {
+		$log->warn('No sense in reordering playlists with less than 2 tracks');
+		return;
+	}
+
+	## sort playlist tracks
+	@PLtracks = sortTracks($sortOption, @PLtracks);
+
+	# clear client playlist, add tracks and refresh
+	Slim::Player::Playlist::stopAndClear($client);
+
+	Slim::Player::Playlist::addTracks($client, \@PLtracks, 0);
+	$client->currentPlaylistModified(1);
+	$client->currentPlaylistUpdateTime(Time::HiRes::time());
+	Slim::Player::Playlist::refreshPlaylist($client);
+
+	$log->info('Sorting current playlist of client "'.$client->name.'" by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
+
+	my $items = [
+		{
+			name => string('PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE').' '.$sortOptionLabels{$sortOption},
+			type => 'text',
+		},
+		{
+			name => string('PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE_INFO'),
+			type => 'text',
+		},
+	];
+	$cb->({
+		items => $items
+	});
+}
+
+
 
 sub initPrefs {
 	$prefs->init({
@@ -353,119 +444,13 @@ sub changePLtrackOrder {
 	return 1 if !blessed($playlist);
 
 	my @PLtracks = $playlist->tracks;
-	return 1 if scalar @PLtracks < 2;
+	if (scalar @PLtracks < 2) {
+		$log->warn('No sense in reordering playlists with less than 2 tracks');
+		return 1;
+	}
 
 	## sort playlist tracks
-
-	my $i = 1;
-
-	# Randomize
-	if ($sortOption == 1) {
-		@PLtracks = shuffle(shuffle(@PLtracks));
-
-	# Invert
-	} elsif ($sortOption == 2) {
-		@PLtracks = reverse @PLtracks
-
-	# By artist > album > disc no. > track no.
-	} elsif ($sortOption == 3) {
-		@PLtracks = sort {lc($a->artist->namesort) cmp lc($b->artist->namesort) || lc($a->album->namesort) cmp lc($b->album->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @PLtracks;
-
-	# By album > artist > disc no. > track no.
-	} elsif ($sortOption == 4) {
-		@PLtracks = sort {lc($a->album->namesort) cmp lc($b->album->namesort) || lc($a->artist->namesort) cmp lc($b->artist->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @PLtracks;
-
-	# By album > disc no. > track no.
-	} elsif ($sortOption == 5) {
-		@PLtracks = sort {lc($a->album->namesort) cmp lc($b->album->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @PLtracks;
-
-	# By first genre
-	} elsif ($sortOption == 6) {
-		@PLtracks = sort {lc($a->genre->namesort) cmp lc($b->genre->namesort)} @PLtracks;
-
-	# By year
-	} elsif ($sortOption == 7) {
-		@PLtracks = sort {($a->year || 0) <=> ($b->year || 0)} @PLtracks;
-
-	# By track number
-	} elsif ($sortOption == 8) {
-		@PLtracks = sort {($a->tracknum || 0) <=> ($b->tracknum || 0)} @PLtracks;
-
-	# By track title
-	} elsif ($sortOption == 9) {
-		@PLtracks = sort {lc($a->titlesort) cmp lc($b->titlesort)} @PLtracks;
-
-	# By date added
-	} elsif ($sortOption == 10) {
-		@PLtracks = sort {($a->addedTime || 0) <=> ($b->addedTime || 0)} @PLtracks;
-
-	# By play count
-	} elsif ($sortOption == 11) {
-		@PLtracks = sort {($b->playcount || 0) <=> ($a->playcount || 0)} @PLtracks;
-
-	# By play count (APC)
-	} elsif ($sortOption == 12) {
-		my %lookupHash;
-		foreach (@PLtracks) {
-			my $trackURLmd5 = $_->urlmd5;
-			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'playCount');
-		}
-		@PLtracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @PLtracks;
-
-	# By date last played
-	} elsif ($sortOption == 13) {
-		@PLtracks = sort {($b->lastplayed || 0) <=> ($a->lastplayed || 0)} @PLtracks;
-
-	# By date last played (APC)
-	} elsif ($sortOption == 14) {
-		my %lookupHash;
-		foreach (@PLtracks) {
-			my $trackURLmd5 = $_->urlmd5;
-			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'lastPlayed');
-		}
-		@PLtracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @PLtracks;
-
-	# By rating
-	} elsif ($sortOption == 15) {
-		@PLtracks = sort {($a->rating || 0) <=> ($b->rating || 0)} @PLtracks;
-
-	# By dynamic played/skipped value (DPSV) (APC)
-	} elsif ($sortOption == 16) {
-		my %lookupHash;
-		foreach (@PLtracks) {
-			my $trackURLmd5 = $_->urlmd5;
-			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'dynPSval');
-		}
-		@PLtracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @PLtracks;
-
-	# By duration
-	} elsif ($sortOption == 17) {
-		@PLtracks = sort {($a->secs || 0) <=> ($b->secs || 0)} @PLtracks;
-
-	# By BPM
-	} elsif ($sortOption == 18) {
-		@PLtracks = sort {($a->bpm || 0) <=> ($b->bpm || 0)} @PLtracks;
-
-	# By bitrate
-	} elsif ($sortOption == 19) {
-		@PLtracks = sort {($a->bitrate || 0) <=> ($b->bitrate || 0)} @PLtracks;
-
-	# By album artist
-	} elsif ($sortOption == 20) {
-		@PLtracks = sort {lc($a->album->contributor->namesort) cmp lc($b->album->contributor->namesort)} @PLtracks;
-
-	# By composer
-	} elsif ($sortOption == 21) {
-		@PLtracks = sort {lc($a->composer->namesort) cmp lc($b->composer->namesort)} @PLtracks;
-
-	# By conductor
-	} elsif ($sortOption == 22) {
-		@PLtracks = sort {lc($a->conductor->namesort) cmp lc($b->conductor->namesort)} @PLtracks;
-
-	# By band
-	} elsif ($sortOption == 23) {
-		@PLtracks = sort {lc($a->band->namesort) cmp lc($b->band->namesort)} @PLtracks;
-	}
+	@PLtracks = sortTracks($sortOption, @PLtracks);
 
 	# update and write playlist
 	$playlist->setTracks(\@PLtracks);
@@ -485,6 +470,121 @@ sub changePLtrackOrder {
 	}
 
 	return 0;
+}
+
+sub sortTracks {
+	my ($sortOption, @tracks) = @_;
+	$log->debug('sortOption = '.Dumper($sortOption));
+
+	# Randomize
+	if ($sortOption == 1) {
+		@tracks = shuffle(shuffle(@tracks));
+
+	# Invert
+	} elsif ($sortOption == 2) {
+		@tracks = reverse @tracks
+
+	# By artist > album > disc no. > track no.
+	} elsif ($sortOption == 3) {
+		@tracks = sort {lc($a->artist->namesort) cmp lc($b->artist->namesort) || lc($a->album->namesort) cmp lc($b->album->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @tracks;
+
+	# By album > artist > disc no. > track no.
+	} elsif ($sortOption == 4) {
+		@tracks = sort {lc($a->album->namesort) cmp lc($b->album->namesort) || lc($a->artist->namesort) cmp lc($b->artist->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @tracks;
+
+	# By album > disc no. > track no.
+	} elsif ($sortOption == 5) {
+		@tracks = sort {lc($a->album->namesort) cmp lc($b->album->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @tracks;
+
+	# By first genre
+	} elsif ($sortOption == 6) {
+		@tracks = sort {lc($a->genre->namesort) cmp lc($b->genre->namesort)} @tracks;
+
+	# By year
+	} elsif ($sortOption == 7) {
+		@tracks = sort {($a->year || 0) <=> ($b->year || 0)} @tracks;
+
+	# By track number
+	} elsif ($sortOption == 8) {
+		@tracks = sort {($a->tracknum || 0) <=> ($b->tracknum || 0)} @tracks;
+
+	# By track title
+	} elsif ($sortOption == 9) {
+		@tracks = sort {lc($a->titlesort) cmp lc($b->titlesort)} @tracks;
+
+	# By date added
+	} elsif ($sortOption == 10) {
+		@tracks = sort {($a->addedTime || 0) <=> ($b->addedTime || 0)} @tracks;
+
+	# By play count
+	} elsif ($sortOption == 11) {
+		@tracks = sort {($b->playcount || 0) <=> ($a->playcount || 0)} @tracks;
+
+	# By play count (APC)
+	} elsif ($sortOption == 12) {
+		my %lookupHash;
+		foreach (@tracks) {
+			my $trackURLmd5 = $_->urlmd5;
+			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'playCount');
+		}
+		@tracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @tracks;
+
+	# By date last played
+	} elsif ($sortOption == 13) {
+		@tracks = sort {($b->lastplayed || 0) <=> ($a->lastplayed || 0)} @tracks;
+
+	# By date last played (APC)
+	} elsif ($sortOption == 14) {
+		my %lookupHash;
+		foreach (@tracks) {
+			my $trackURLmd5 = $_->urlmd5;
+			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'lastPlayed');
+		}
+		@tracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @tracks;
+
+	# By rating
+	} elsif ($sortOption == 15) {
+		@tracks = sort {($a->rating || 0) <=> ($b->rating || 0)} @tracks;
+
+	# By dynamic played/skipped value (DPSV) (APC)
+	} elsif ($sortOption == 16) {
+		my %lookupHash;
+		foreach (@tracks) {
+			my $trackURLmd5 = $_->urlmd5;
+			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'dynPSval');
+		}
+		@tracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @tracks;
+
+	# By duration
+	} elsif ($sortOption == 17) {
+		@tracks = sort {($a->secs || 0) <=> ($b->secs || 0)} @tracks;
+
+	# By BPM
+	} elsif ($sortOption == 18) {
+		@tracks = sort {($a->bpm || 0) <=> ($b->bpm || 0)} @tracks;
+
+	# By bitrate
+	} elsif ($sortOption == 19) {
+		@tracks = sort {($a->bitrate || 0) <=> ($b->bitrate || 0)} @tracks;
+
+	# By album artist
+	} elsif ($sortOption == 20) {
+		@tracks = sort {lc($a->album->contributor->namesort) cmp lc($b->album->contributor->namesort)} @tracks;
+
+	# By composer
+	} elsif ($sortOption == 21) {
+		@tracks = sort {lc($a->composer->namesort) cmp lc($b->composer->namesort)} @tracks;
+
+	# By conductor
+	} elsif ($sortOption == 22) {
+		@tracks = sort {lc($a->conductor->namesort) cmp lc($b->conductor->namesort)} @tracks;
+
+	# By band
+	} elsif ($sortOption == 23) {
+		@tracks = sort {lc($a->band->namesort) cmp lc($b->band->namesort)} @tracks;
+	}
+
+	return @tracks;
 }
 
 sub setStartVolumeLevel {
@@ -599,6 +699,14 @@ sub isTimeOrEmpty {
 
 sub getCurrentDBH {
 	return Slim::Schema->storage->dbh();
+}
+
+sub masterOrSelf {
+	my $client = shift;
+	if (!defined($client)) {
+		return $client;
+	}
+	return $client->master();
 }
 
 1;

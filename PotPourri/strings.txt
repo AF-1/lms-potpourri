@@ -120,6 +120,14 @@ PLUGIN_POTPOURRI_PL_SORTORDER_SUCCESS
 PLUGIN_POTPOURRI_PL_SORTORDER_FAILED
 	EN	Reordering playlist tracks failed
 
+PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER
+	EN	Change playlist track order of client:
+
+PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE
+	EN	Finished sorting by
+
+PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE_INFO
+	EN	You can refresh your client's playlist now or wait for it to auto-refresh.
 
 PLUGIN_POTPOURRI_STARTVOLUME
 	EN	Player Power-On Volume
