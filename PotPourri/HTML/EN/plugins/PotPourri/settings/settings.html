@@ -14,13 +14,6 @@
 	<span style="text-align: center;">[% "PLUGIN_POTPOURRI_SETTINGS_PLAYLISTS_NOPLFOUND" | string %]</span>
 [% END %]
 [% END %]
-[% IF homemenuplaylist %]
-	<br>
-
-	[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST_ALTNAME" desc="PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST_ALTNAME_DESC" %]
-		<input type="text" class="stdedit" name="pref_alterativetoplevelplaylistname" id="alterativetoplevelplaylistname" value="[% prefs.alterativetoplevelplaylistname %]">
-	[% END %]
-[% END %]
 <br>
 
 [% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_SCHEDULED_POWEROFF" desc="PLUGIN_POTPOURRI_SETTINGS_SCHEDULED_POWEROFF_DESC" %]

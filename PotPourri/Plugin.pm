@@ -49,11 +49,9 @@ my $prefs = preferences('plugin.potpourri');
 my %sortOptionLabels;
 my ($apc_enabled, $material_enabled);
 
-sub getDisplayName { 'PLUGIN_POTPOURRI' }
-
 sub initPlugin {
 	my $class = shift;
-	#$class->SUPER::initPlugin(@_);
+
 	initPrefs();
 	if (main::WEBUI) {
 		require Plugins::PotPourri::Settings;
@@ -88,89 +86,6 @@ sub initPlugin {
 		$class->SUPER::initPlugin(@_);
 	}
 }
-
-sub handleFeed {
-	my ($client, $callback, $params, $args) = @_;
-	$log->debug('client ID:'.$client->name.' ## client ID:'.$client->id);
-
-	my $items = [
-		{
-			name => cstring($client, 'PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER').' '.$client->name,
-			type => 'link',
-			url => \&getSortOptions,
-		},
-	];
-	$callback->({
-		items => $items
-	});
-}
-
-sub getSortOptions {
-	my ($client, $cb, $params) = @_;
-
-	my @sortOptionKeys = sort {$a <=> $b} keys (%sortOptionLabels);
-
-	my $sortOptions = [];
-
-	foreach (@sortOptionKeys) {
-		next if $sortOptionLabels{$_} =~ '(APC)' && !$apc_enabled;
-		push @{$sortOptions}, {
-					name => $sortOptionLabels{$_},
-					url => \&changeClientPLTrackOrder,
-					passthrough => [{
-						sortOption => $_,
-					}],
-				};
-	}
-	$cb->($sortOptions);
-}
-
-sub changeClientPLTrackOrder {
-	my ($client, $cb, $params, $args) = @_;
-	return if !$client;
-
-	$log->info('client ID:'.$client->name.' ## client ID:'.$client->id);
-	my $started = time();
-
-	my $sortOption = $args->{'sortOption'};
-	$log->debug('sortOption = '.Dumper($sortOption));
-
-	my @PLtracks = @{Slim::Player::Playlist::playList($client)};
-
-	if (scalar @PLtracks < 2) {
-		$log->warn('No sense in reordering playlists with less than 2 tracks');
-		return;
-	}
-
-	## sort playlist tracks
-	@PLtracks = sortTracks($sortOption, @PLtracks);
-
-	# clear client playlist, add tracks and refresh
-	Slim::Player::Playlist::stopAndClear($client);
-
-	Slim::Player::Playlist::addTracks($client, \@PLtracks, 0);
-	$client->currentPlaylistModified(1);
-	$client->currentPlaylistUpdateTime(Time::HiRes::time());
-	Slim::Player::Playlist::refreshPlaylist($client);
-
-	$log->info('Sorting current playlist of client "'.$client->name.'" by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
-
-	my $items = [
-		{
-			name => string('PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE').' '.$sortOptionLabels{$sortOption},
-			type => 'text',
-		},
-		{
-			name => string('PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE_INFO'),
-			type => 'text',
-		},
-	];
-	$cb->({
-		items => $items
-	});
-}
-
-
 
 sub initPrefs {
 	$prefs->init({
@@ -213,91 +128,6 @@ sub postinitPlugin {
 	powerOffClientsScheduler();
 }
 
-sub powerOffClientsScheduler {
-	$log->debug('Killing existing timers for scheduled power-off');
-	Slim::Utils::Timers::killOneTimer(undef, \&powerOffClientsScheduler);
-	my $enableScheduledClientsPowerOff = $prefs->get('enablescheduledclientspoweroff');
-	if ($enableScheduledClientsPowerOff) {
-		my ($powerOffTimeUnparsed, $powerOffTime);
-		$powerOffTimeUnparsed = $powerOffTime = $prefs->get('powerofftime');
-
-		if (defined($powerOffTime) && $powerOffTime ne '') {
-			my $time = 0;
-			$powerOffTime =~ s{
-				^(0?[0-9]|1[0-9]|2[0-4]):([0-5][0-9])\s*(P|PM|A|AM)?$
-			}{
-				if (defined $3) {
-					$time = ($1 == 12?0:$1 * 60 * 60) + ($2 * 60) + ($3 =~ /P/?12 * 60 * 60:0);
-				} else {
-					$time = ($1 * 60 * 60) + ($2 * 60);
-				}
-			}iegsx;
-
-			my ($sec,$min,$hour,$mday,$mon,$year) = localtime(time);
-			my $currenttime = $hour * 60 * 60 + $min * 60;
-
-			if ($currenttime == $powerOffTime) {
-				$log->info('Current time '.parse_duration($currenttime).' = scheduled power-off time '.$powerOffTimeUnparsed.'. Powering off all players now.');
-				foreach my $client (Slim::Player::Client::clients()) {
-					if ($client->power()) {
-						$client->stop() if $client->isPlaying();
-						$client->power(0);
-					}
-				}
-				Slim::Utils::Timers::setTimer(undef, time() + 120, \&powerOffClientsScheduler);
-			} else {
-				my $timeleft = $powerOffTime - $currenttime;
-				$timeleft = $timeleft + 24 * 60 * 60 if $timeleft < 0; # it's past powerOffTime -> schedule for same time tomorrow
-				$log->info(parse_duration($timeleft)." until next scheduled power-off at ".$powerOffTimeUnparsed);
-				Slim::Utils::Timers::setTimer(undef, time() + $timeleft, \&powerOffClientsScheduler);
-			}
-		} else {
-			$log->warn('powerOffTime = not defined or empty string');
-		}
-	}
-}
-
-sub initPLtoplevellink {
-	$log->debug('Started initializing playlist toplevel link.');
-	# deregister item first
-	Slim::Menu::BrowseLibrary->deregisterNode('PTP_HOMEMENU_TOPLEVEL_LINKEDPLAYLIST');
-
-	# link to playlist in home menu
-	my $toplevelplaylistname = $prefs->get('toplevelplaylistname') || 'none';
-	if ($toplevelplaylistname eq 'none') {
-		$prefs->set('alterativetoplevelplaylistname', '');
-	}
-	my $alterativetoplevelplaylistname = $prefs->get('alterativetoplevelplaylistname') || '';
-	$log->debug('toplevelplaylistname = '.$toplevelplaylistname);
-	$log->debug('alterativetoplevelplaylistname = '.Dumper($alterativetoplevelplaylistname));
-	if ($toplevelplaylistname ne 'none') {
-		my $homemenuTLPLname;
-		if ($alterativetoplevelplaylistname ne '') {
-			$log->debug('alterativetoplevelplaylistname = '.$alterativetoplevelplaylistname);
-			$homemenuTLPLname = registerCustomString($alterativetoplevelplaylistname);
-		} else {
-			$homemenuTLPLname = registerCustomString($toplevelplaylistname);
-		}
-		$log->debug('name of home menu item for linked playlist = '.$homemenuTLPLname);
-		my $toplevelplaylistID = getPlaylistIDforName($toplevelplaylistname);
-		$log->debug('toplevelplaylistID = '.$toplevelplaylistID);
-
-		Slim::Menu::BrowseLibrary->registerNode({
-			type => 'link',
-			name => $homemenuTLPLname,
-			params => {'playlist_id' => $toplevelplaylistID},
-			feed => \&Slim::Menu::BrowseLibrary::_playlistTracks,
-			icon => 'plugins/PotPourri/html/images/browsemenupfoldericon.png',
-			jiveIcon => 'plugins/PotPourri/html/images/browsemenupfoldericon.png',
-			homeMenuText => $homemenuTLPLname,
-			condition => \&Slim::Menu::BrowseLibrary::isEnabledNode,
-			id => 'PTP_HOMEMENU_TOPLEVEL_LINKEDPLAYLIST',
-			weight => 79,
-			cache => 0,
-		});
-	}
-	$log->debug('Finished initializing playlist toplevel link.');
-}
 
 sub playlistSortContextMenu {
 	my ($client, $url, $obj, $remoteMeta, $tags) = @_;
@@ -477,6 +307,87 @@ sub changePLtrackOrder {
 	return 0;
 }
 
+sub handleFeed {
+	my ($client, $callback, $params, $args) = @_;
+	$log->debug('client ID:'.$client->name.' ## client ID:'.$client->id);
+
+	my $items = [
+		{
+			name => cstring($client, 'PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER').' '.$client->name,
+			type => 'link',
+			url => \&getSortOptions,
+		},
+	];
+	$callback->({
+		items => $items
+	});
+}
+
+sub getSortOptions {
+	my ($client, $cb, $params) = @_;
+
+	my @sortOptionKeys = sort {$a <=> $b} keys (%sortOptionLabels);
+
+	my $sortOptions = [];
+
+	foreach (@sortOptionKeys) {
+		next if $sortOptionLabels{$_} =~ '(APC)' && !$apc_enabled;
+		push @{$sortOptions}, {
+					name => $sortOptionLabels{$_},
+					url => \&changeClientPLTrackOrder,
+					passthrough => [{
+						sortOption => $_,
+					}],
+				};
+	}
+	$cb->($sortOptions);
+}
+
+sub changeClientPLTrackOrder {
+	my ($client, $cb, $params, $args) = @_;
+	return if !$client;
+
+	$log->info('client ID:'.$client->name.' ## client ID:'.$client->id);
+	my $started = time();
+
+	my $sortOption = $args->{'sortOption'};
+	$log->debug('sortOption = '.Dumper($sortOption));
+
+	my @PLtracks = @{Slim::Player::Playlist::playList($client)};
+
+	if (scalar @PLtracks < 2) {
+		$log->warn('No sense in reordering playlists with less than 2 tracks');
+		return;
+	}
+
+	## sort playlist tracks
+	@PLtracks = sortTracks($sortOption, @PLtracks);
+
+	# clear client playlist, add tracks and refresh
+	Slim::Player::Playlist::stopAndClear($client);
+
+	Slim::Player::Playlist::addTracks($client, \@PLtracks, 0);
+	$client->currentPlaylistModified(1);
+	$client->currentPlaylistUpdateTime(Time::HiRes::time());
+	Slim::Player::Playlist::refreshPlaylist($client);
+
+	$log->info('Sorting current playlist of client "'.$client->name.'" by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
+
+	my $items = [
+		{
+			name => string('PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE').' '.$sortOptionLabels{$sortOption},
+			type => 'text',
+		},
+		{
+			name => string('PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE_INFO'),
+			type => 'text',
+		},
+	];
+	$cb->({
+		items => $items
+	});
+}
+
 sub sortTracks {
 	my ($sortOption, @tracks) = @_;
 	$log->debug('sortOption = '.Dumper($sortOption));
@@ -592,6 +503,7 @@ sub sortTracks {
 	return @tracks;
 }
 
+
 sub setStartVolumeLevel {
 	my $request = shift;
 	my $client = $request->client();
@@ -618,6 +530,78 @@ sub setStartVolumeLevel {
 		$prefs->client($client)->set('lastVolume', $curVolume);
 		$log->debug("Saving last volume $curVolume for client '".$client->name()."'");
 	}
+}
+
+sub powerOffClientsScheduler {
+	$log->debug('Killing existing timers for scheduled power-off');
+	Slim::Utils::Timers::killOneTimer(undef, \&powerOffClientsScheduler);
+	my $enableScheduledClientsPowerOff = $prefs->get('enablescheduledclientspoweroff');
+	if ($enableScheduledClientsPowerOff) {
+		my ($powerOffTimeUnparsed, $powerOffTime);
+		$powerOffTimeUnparsed = $powerOffTime = $prefs->get('powerofftime');
+
+		if (defined($powerOffTime) && $powerOffTime ne '') {
+			my $time = 0;
+			$powerOffTime =~ s{
+				^(0?[0-9]|1[0-9]|2[0-4]):([0-5][0-9])\s*(P|PM|A|AM)?$
+			}{
+				if (defined $3) {
+					$time = ($1 == 12?0:$1 * 60 * 60) + ($2 * 60) + ($3 =~ /P/?12 * 60 * 60:0);
+				} else {
+					$time = ($1 * 60 * 60) + ($2 * 60);
+				}
+			}iegsx;
+
+			my ($sec,$min,$hour,$mday,$mon,$year) = localtime(time);
+			my $currenttime = $hour * 60 * 60 + $min * 60;
+
+			if ($currenttime == $powerOffTime) {
+				$log->info('Current time '.parse_duration($currenttime).' = scheduled power-off time '.$powerOffTimeUnparsed.'. Powering off all players now.');
+				foreach my $client (Slim::Player::Client::clients()) {
+					if ($client->power()) {
+						$client->stop() if $client->isPlaying();
+						$client->power(0);
+					}
+				}
+				Slim::Utils::Timers::setTimer(undef, time() + 120, \&powerOffClientsScheduler);
+			} else {
+				my $timeleft = $powerOffTime - $currenttime;
+				$timeleft = $timeleft + 24 * 60 * 60 if $timeleft < 0; # it's past powerOffTime -> schedule for same time tomorrow
+				$log->info(parse_duration($timeleft)." until next scheduled power-off at ".$powerOffTimeUnparsed);
+				Slim::Utils::Timers::setTimer(undef, time() + $timeleft, \&powerOffClientsScheduler);
+			}
+		} else {
+			$log->warn('powerOffTime = not defined or empty string');
+		}
+	}
+}
+
+sub initPLtoplevellink {
+	$log->debug('Started initializing playlist toplevel link.');
+	# deregister item first
+	Slim::Menu::BrowseLibrary->deregisterNode('PTP_HOMEMENU_TOPLEVEL_LINKEDPLAYLIST');
+
+	# link to playlist in home menu
+	my $toplevelplaylistname = $prefs->get('toplevelplaylistname') || 'none';
+	$log->debug('toplevelplaylistname = '.$toplevelplaylistname);
+	if ($toplevelplaylistname ne 'none') {
+		my $toplevelplaylistID = getPlaylistIDforName($toplevelplaylistname);
+		$log->debug('name of linked playlist (ID: '.$toplevelplaylistID.') = '.$toplevelplaylistname);
+
+		Slim::Menu::BrowseLibrary->registerNode({
+			type => 'link',
+			name => 'PLUGIN_POTPOURRI_TOPLEVEL_LINKEDPLAYLIST_NAME',
+			params => {'playlist_id' => $toplevelplaylistID},
+			feed => \&Slim::Menu::BrowseLibrary::_playlistTracks,
+			icon => 'plugins/PotPourri/html/images/browsemenupfoldericon.png',
+			jiveIcon => 'plugins/PotPourri/html/images/browsemenupfoldericon.png',
+			condition => \&Slim::Menu::BrowseLibrary::isEnabledNode,
+			id => 'PTP_HOMEMENU_TOPLEVEL_LINKEDPLAYLIST',
+			weight => 79,
+			cache => 0,
+		});
+	}
+	$log->debug('Finished initializing playlist toplevel link.');
 }
 
 
@@ -671,21 +655,6 @@ sub getPlaylistIDforName {
 	}
 }
 
-sub registerCustomString {
-	my $string = shift;
-	if (!Slim::Utils::Strings::stringExists($string)) {
-		my $token = uc(Slim::Utils::Text::ignoreCase($string, 1));
-		$token =~ s/\s/_/g;
-		$token = 'PLUGIN_PTP_PLTOPLEVELNAME_' . $token;
-		Slim::Utils::Strings::storeExtraStrings([{
-			strings => {EN => $string},
-			token => $token,
-		}]) if !Slim::Utils::Strings::stringExists($token);
-		return $token;
-	}
-	return $string;
-}
-
 sub parse_duration {
 	use integer;
 	sprintf("%02dh:%02dm", $_[0]/3600, $_[0]/60%60);
@@ -706,12 +675,6 @@ sub getCurrentDBH {
 	return Slim::Schema->storage->dbh();
 }
 
-sub masterOrSelf {
-	my $client = shift;
-	if (!defined($client)) {
-		return $client;
-	}
-	return $client->master();
-}
+sub getDisplayName {'PLUGIN_POTPOURRI'}
 
 1;

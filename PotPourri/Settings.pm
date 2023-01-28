@@ -42,7 +42,7 @@ sub page {
 }
 
 sub prefs {
-	return ($prefs, qw(toplevelplaylistname alterativetoplevelplaylistname enablescheduledclientspoweroff powerofftime appitem));
+	return ($prefs, qw(toplevelplaylistname enablescheduledclientspoweroff powerofftime appitem));
 }
 
 sub handler {
