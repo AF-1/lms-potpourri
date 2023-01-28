@@ -3,13 +3,13 @@
 		<title lang="EN">PotPourri Repo (AF1)</title>
 	</details>
 	<plugins>
-		<plugin name="PotPourri" version="0.2.2" minTarget="7.9" maxTarget="*">
+		<plugin name="PotPourri" version="0.2.3" minTarget="7.9" maxTarget="*">
 			<title lang="EN">PotPourri</title>
 			<desc lang="EN">A collection of various small features. More information on the GitHub page.</desc>
-			<url>https://github.com/AF-1/lms-potpourri/releases/download/0.2.2/lms-potpourri-0.2.2.zip</url>
+			<url>https://github.com/AF-1/lms-potpourri/releases/download/0.2.3/lms-potpourri-0.2.3.zip</url>
 			<creator>AF</creator>
 			<link>https://github.com/AF-1/lms-potpourri</link>
-			<sha>2ae8c08e354d73a5229c2120408e1951c868f6a2</sha>
+			<sha>cbcc58f71b955eb75f96e324272781610592e62d</sha>
 		</plugin>
 	</plugins>
 </extensions>
