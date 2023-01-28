@@ -171,3 +171,9 @@ PLUGIN_POTPOURRI_SETTINGS_POWEROFFTIME
 
 PLUGIN_POTPOURRI_SETTINGS_POWEROFFTIME_DESC
 	EN	When to switch all players off.
+
+PLUGIN_POTPOURRI_SETTINGS_APPITEM
+	EN	Display PotPourri app item
+
+PLUGIN_POTPOURRI_SETTINGS_APPITEM_DESC
+	EN	If checked, you will find a <i>PotPourri</i> item in the <b>LMS Apps</b> folder that allows you to execute certain actions (e.g. change the track order of a client's playlist/queue).<br>The LMS Apps menu can be accessed from <b>all</b> web skins and controllers.<br><br>If you change this setting, <b>please <b>restart LMS for the change to take effect.</b>

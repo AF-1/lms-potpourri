@@ -3,10 +3,11 @@
 	<id>af75ac4f-d757-7cdb-b390-dbea4791f646</id>
 	<name>PLUGIN_POTPOURRI</name>
 	<module>Plugins::PotPourri::Plugin</module>
-	<version>0.2.2</version>
+	<version>0.2.3</version>
 	<description>PLUGIN_POTPOURRI_DESC</description>
 	<creator>AF</creator>
 	<optionsURL>plugins/PotPourri/settings/settings.html</optionsURL>
+	<icon>plugins/PotPourri/html/images/ppt_icon_svg.png</icon>
 	<homepageURL>https://github.com/AF-1/lms-potpourri</homepageURL>
 	<defaultState>enabled</defaultState>
 	<targetApplication>

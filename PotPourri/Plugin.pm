@@ -78,11 +78,15 @@ sub initPlugin {
 	Slim::Control::Request::subscribe(\&setStartVolumeLevel,[['power']]);
 	Slim::Control::Request::subscribe(\&initPLtoplevellink,[['rescan'],['done']]);
 
-	$class->SUPER::initPlugin(
-		feed => \&handleFeed,
-		tag => 'potpourri',
-		is_app => 1,
-	);
+	if ($prefs->get('appitem')) {
+		$class->SUPER::initPlugin(
+			feed => \&handleFeed,
+			tag => 'potpourri',
+			is_app => 1,
+		);
+	} else {
+		$class->SUPER::initPlugin(@_);
+	}
 }
 
 sub handleFeed {
@@ -172,6 +176,7 @@ sub initPrefs {
 	$prefs->init({
 		toplevelplaylistname => 'none',
 		powerofftime => '01:30',
+		appitem => 1,
 	});
 
 	$prefs->setValidate({

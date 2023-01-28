@@ -32,4 +32,8 @@
 [% END %]
 <br>
 
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_APPITEM" desc="PLUGIN_POTPOURRI_SETTINGS_APPITEM_DESC" %]
+	<input name="pref_appitem" id="appitem" type="checkbox"[% IF prefs.appitem %] checked[% END %]>
+[% END %]
+
 [% PROCESS settings/footer.html %]
