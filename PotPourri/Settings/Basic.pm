@@ -18,13 +18,13 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 
-package Plugins::PotPourri::Settings;
+package Plugins::PotPourri::Settings::Basic;
 
 use strict;
 use warnings;
 use utf8;
 
-use base qw(Slim::Web::Settings);
+use base qw(Plugins::PotPourri::Settings::BaseSettings);
 
 use Slim::Utils::Prefs;
 use Slim::Utils::Log;
@@ -33,12 +33,33 @@ use Data::Dumper;
 my $log = logger('plugin.potpourri');
 my $prefs = preferences('plugin.potpourri');
 
+my $plugin;
+
+sub new {
+	my $class = shift;
+	$plugin = shift;
+	$class->SUPER::new($plugin,1);
+}
+
 sub name {
 	return Slim::Web::HTTP::CSRF->protectName('PLUGIN_POTPOURRI');
 }
 
 sub page {
-	return Slim::Web::HTTP::CSRF->protectURI('plugins/PotPourri/settings/settings.html');
+	return Slim::Web::HTTP::CSRF->protectURI('plugins/PotPourri/settings/basic.html');
+}
+
+sub currentPage {
+	return Slim::Utils::Strings::string('PLUGIN_POTPOURRI_SETTINGS_VARIOUS');
+}
+
+sub pages {
+	my %page = (
+		'name' => Slim::Utils::Strings::string('PLUGIN_POTPOURRI_SETTINGS_VARIOUS'),
+		'page' => page(),
+	);
+	my @pages = (\%page);
+	return \@pages;
 }
 
 sub prefs {

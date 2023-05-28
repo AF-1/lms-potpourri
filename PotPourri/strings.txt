@@ -8,11 +8,24 @@ PLUGIN_POTPOURRI_LOG_DESC
 	EN	Log of plugin PotPourri
 
 
-PLUGIN_POTPOURRI_SETTINGS_GITHUB_LINK_TEXT
+PLUGIN_POTPOURRI_SETTINGS_EXPORT
+	EN	Export modified playlists
+
+PLUGIN_POTPOURRI_SETTINGS_VARIOUS
+	EN	Various Settings
+
+PLUGIN_POTPOURRI_SETTINGS_SUBPAGE
+	EN	Settings Section
+
+PLUGIN_POTPOURRI_SETTINGS_SUBPAGE_DESC
+	EN	Select a settings section
+
+PLUGIN_POTPOURRI_SETTINGS_FAQ_LINK_TEXT
 	EN	Click here for more information.
 
-PLUGIN_POTPOURRI_SETTINGS_GITHUB_LINK
+PLUGIN_POTPOURRI_SETTINGS_FAQ_LINK
 	EN	https://github.com/AF-1/lms-potpourri#potpourri
+
 
 PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST
 	EN	Home Menu Link to Playlist
@@ -174,3 +187,40 @@ PLUGIN_POTPOURRI_SETTINGS_APPITEM
 
 PLUGIN_POTPOURRI_SETTINGS_APPITEM_DESC
 	EN	If checked, you will find a <i>PotPourri</i> item in the <b>LMS Apps</b> folder that allows you to execute certain actions (e.g. change the track order of a client's playlist/queue).<br>The LMS Apps menu can be accessed from <b>all</b> web skins and controllers.<br><br>If you change this setting, <b>please <b>restart LMS for the change to take effect.</b>
+
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_PLAYLISTS_TO_FILES
+	EN	Export this playlist<br>as a modified playlist file
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_PLAYLISTS_TO_FILES_DESC
+	EN	Select a playlist and export its tracks to playlist files and have PPT change the file paths or file extensions according to the settings below.<br>Files are exported to the <i>LMS playlists</i> folder and have a m3u.txt-extension so they won't get picked up by LMS scans.
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_PLAYLISTS_TO_FILES_BUTTON
+	EN	Export now
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_INPROGRESS
+	EN	exporting...
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_PATHSUBSTITUTION
+	EN	Replace file path
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_PATHSUBSTITUTION_DESC
+	EN	Replace the LMS root file path in your <b>exported</b> file urls with a different file path.<br>Helpful if you want to use the exported playlist with another version of your LMS library on another PC.
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_PATHSUBSTITUTION_LMSPATH
+	EN	LMS base file path
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_PATHSUBSTITUTION_NEWPATH
+	EN	New base file path
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_EXTENSIONSUBSTITUTION
+	EN	Replace file extension
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_EXTENSIONSUBSTITUTION_DESC
+	EN	Replace the file extension of your <b>exported</b> file urls. Helpful if you want to use the exported playlist with a lossy version of your lossless LMS library.
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_EXTENSIONEXCEPTIONS
+	EN	Replace file extensions:<br>ignore list
+
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_EXTENSIONEXCEPTIONS_DESC
+	EN	If you replace file extensions when exporting your playlist, you can specify here which extensions should be ignored, i.e. they won't be replaced. For example, if they already belong to a lossy format.<br><b>Multiple</b> extensions have to be separated by a <b>comma</b>.

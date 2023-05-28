@@ -34,10 +34,14 @@ use Slim::Utils::Text;
 use Slim::Utils::Unicode;
 use List::Util qw(shuffle);
 use Time::HiRes qw(time);
+use POSIX qw(strftime);
 use Slim::Schema;
+use File::Spec::Functions qw(:ALL);
+use URI::Escape qw(uri_escape_utf8 uri_unescape);
 use Data::Dumper;
 
-use Plugins::PotPourri::Settings;
+use Plugins::PotPourri::Settings::Basic;
+use Plugins::PotPourri::Settings::Export;
 
 my $log = Slim::Utils::Log->addLogCategory({
 	'category' => 'plugin.potpourri',
@@ -54,9 +58,11 @@ sub initPlugin {
 
 	initPrefs();
 	if (main::WEBUI) {
-		require Plugins::PotPourri::Settings;
+		require Plugins::PotPourri::Settings::Basic;
+		require Plugins::PotPourri::Settings::Export;
 		require Plugins::PotPourri::PlayerSettings;
-		Plugins::PotPourri::Settings->new($class);
+		Plugins::PotPourri::Settings::Basic->new($class);
+		Plugins::PotPourri::Settings::Export->new($class);
 		Plugins::PotPourri::PlayerSettings->new();
 	}
 
@@ -75,6 +81,8 @@ sub initPlugin {
 
 	Slim::Control::Request::subscribe(\&setStartVolumeLevel,[['power']]);
 	Slim::Control::Request::subscribe(\&initPLtoplevellink,[['rescan'],['done']]);
+
+	initExportBaseFilePathMatrix();
 
 	if ($prefs->get('appitem')) {
 		$class->SUPER::initPlugin(
@@ -103,6 +111,8 @@ sub initPrefs {
 			return 1;
 		}
 	}, 'alterativetoplevelplaylistname');
+	$prefs->set('status_exportingtoplaylistfiles', '0');
+
 	$prefs->setValidate({'validator' => 'intlimit', 'low' => 0, 'high' => 100}, 'presetVolume');
 	$prefs->setValidate({'validator' => \&isTimeOrEmpty}, 'powerofftime');
 
@@ -504,6 +514,161 @@ sub sortTracks {
 }
 
 
+# export static playlists with new paths/file extensions
+sub exportPlaylistsToFiles {
+	my $playlistID = shift;
+$log->info('playlistID = '.Dumper($playlistID));
+
+	my $status_exportingtoplaylistfiles = $prefs->get('status_exportingtoplaylistfiles');
+	if ($status_exportingtoplaylistfiles == 1) {
+		$log->warn('Export is already in progress, please wait for the previous export to finish');
+		return;
+	}
+	$prefs->set('status_exportingtoplaylistfiles', 1);
+
+	my $exportDir = $serverPrefs->get('playlistdir');
+	my $started = time();
+
+	my $playlist = Slim::Schema->find('Playlist', $playlistID);
+	return if !blessed($playlist);
+
+	my @PLtracks = $playlist->tracks;
+	my $trackCount = scalar(@PLtracks);
+
+	if ($trackCount > 0) {
+		my $exporttimestamp = strftime "%Y-%m-%d %H:%M:%S", localtime time;
+		my $filename_timestamp = strftime "%Y%m%d-%H%M", localtime time;
+		my $PLfilename = 'PPT_Export_'.$filename_timestamp.'_'.$playlist->title.'.m3u.txt';
+
+		my $filename = catfile($exportDir, $PLfilename);
+		my $output = FileHandle->new($filename, '>:utf8') or do {
+			$log->error('Could not open '.$filename.' for writing. Does LMS have read/write permissions (755) for the LMS playlist folder?');
+			$prefs->set('status_exportingtoplaylistfiles', 0);
+			return;
+		};
+		print $output '#EXTM3U'."\n";
+		print $output '# exported with \'PotPourri\' LMS plugin ('.$exporttimestamp.")\n";
+		print $output '# contains '.$trackCount.($trackCount == 1 ? ' track' : ' tracks')."\n\n";
+		for my $thisTrack (@PLtracks) {
+			my $thisTrackURL = $thisTrack->get('url');
+			my $thisTrackURL_extURL = changeExportFilePath($thisTrackURL, 1) if ($thisTrack->get('remote') != 1);
+			print $output '#EXTURL:'.$thisTrackURL_extURL."\n" if $thisTrackURL_extURL && $thisTrackURL_extURL ne '';
+
+			my $thisTrackPath = pathForItem($thisTrackURL);
+			$thisTrackPath = Slim::Utils::Unicode::utf8decode_locale(pathForItem($thisTrackURL)); # diff
+			$thisTrackPath = changeExportFilePath($thisTrackPath) if ($thisTrack->get('remote') != 1);
+
+			print $output $thisTrackPath."\n";
+		}
+		close $output;
+	}
+
+	$log->debug('TOTAL number of tracks exported: '.$trackCount);
+	$prefs->set('status_exportingtoplaylistfiles', 0);
+	$log->debug('Export completed after '.(time() - $started).' seconds.');
+}
+
+sub changeExportFilePath {
+	my $trackURL = shift;
+	my $isEXTURL = shift;
+	my $exportbasefilepathmatrix = $prefs->get('exportbasefilepathmatrix');
+
+	if (scalar @{$exportbasefilepathmatrix} > 0) {
+		my $oldtrackURL = $trackURL;
+		my $escaped_trackURL = uri_escape_utf8($trackURL);
+		my $exportextension = $prefs->get('exportextension');
+		my $exportExtensionExceptionsString = $prefs->get('exportextensionexceptions');
+
+		foreach my $thispath (@{$exportbasefilepathmatrix}) {
+			my $lmsbasepath = $thispath->{'lmsbasepath'};
+			$log->info("\n\n\nisEXTURL = ".Dumper($isEXTURL));
+			$log->info('trackURL = '.Dumper($oldtrackURL));
+			$log->info('escaped_trackURL = '.$escaped_trackURL);
+			if ($isEXTURL) {
+				$lmsbasepath =~ s/\\/\//isg;
+				$escaped_trackURL =~ s/%2520/%20/isg;
+			}
+			$log->info('escaped_trackURL after EXTURL regex = '.$escaped_trackURL);
+
+			my $escaped_lmsbasepath = uri_escape_utf8($lmsbasepath);
+			$log->info('escaped_lmsbasepath = '.$escaped_lmsbasepath);
+
+			if (($escaped_trackURL =~ $escaped_lmsbasepath) && (defined ($thispath->{'substitutebasepath'})) && (($thispath->{'substitutebasepath'}) ne '')) {
+				my $substitutebasepath = $thispath->{'substitutebasepath'};
+				$log->info('substitutebasepath = '.$substitutebasepath);
+				if ($isEXTURL) {
+					$substitutebasepath =~ s/\\/\//isg;
+				}
+				my $escaped_substitutebasepath = uri_escape_utf8($substitutebasepath);
+				$log->info('escaped_substitutebasepath = '.$escaped_substitutebasepath);
+
+				if (defined $exportextension && $exportextension ne '') {
+					my ($LMSfileExtension) = $escaped_trackURL =~ /(\.[^.]*)$/;
+					$LMSfileExtension =~ s/\.//s;
+					$log->info("LMS file extension is '$LMSfileExtension'");
+
+					# file extension replacement - exceptions
+					my %extensionExceptionsHash;
+					if (defined $exportExtensionExceptionsString && $exportExtensionExceptionsString ne '') {
+						$exportExtensionExceptionsString =~ s/ //g;
+						%extensionExceptionsHash = map {$_ => 1} (split /,/, lc($exportExtensionExceptionsString));
+						$log->debug('extensionExceptionsHash = '.Dumper(\%extensionExceptionsHash));
+					}
+
+					if ((scalar keys %extensionExceptionsHash > 0) && $extensionExceptionsHash{lc($LMSfileExtension)}) {
+						$log->info("The file extension '$LMSfileExtension' is not replaced because it is included in the list of exceptions.");
+					} else {
+						$escaped_trackURL =~ s/\.[^.]*$/\.$exportextension/isg;
+					}
+				}
+
+				$escaped_trackURL =~ s/$escaped_lmsbasepath/$escaped_substitutebasepath/isg;
+				$log->info('escaped_trackURL AFTER regex replacing = '.$escaped_trackURL);
+
+				$trackURL = Encode::decode('utf8', uri_unescape($escaped_trackURL));
+				$log->info('UNescaped trackURL = '.$trackURL);
+
+				if ($isEXTURL) {
+					$trackURL =~ s/ /%20/isg;
+				} else {
+					$trackURL = Slim::Utils::Unicode::utf8decode_locale($trackURL);
+				}
+				$log->info('old url: '.$oldtrackURL."\nlmsbasepath = ".$lmsbasepath."\nsubstitutebasepath = ".$substitutebasepath."\nnew url = ".$trackURL);
+			}
+		}
+	}
+	return $trackURL;
+}
+
+sub initExportBaseFilePathMatrix {
+	# get LMS music dirs
+	my $lmsmusicdirs = getMusicDirs();
+	my $exportbasefilepathmatrix = $prefs->get('exportbasefilepathmatrix');
+	if (!defined $exportbasefilepathmatrix) {
+		my $n = 0;
+		foreach my $musicdir (@{$lmsmusicdirs}) {
+			push(@{$exportbasefilepathmatrix}, {lmsbasepath => $musicdir, substitutebasepath => ''});
+			$n++;
+		}
+		$prefs->set('exportbasefilepathmatrix', $exportbasefilepathmatrix);
+	} else {
+		# add new music dirs as options if not in list
+		my @currentlmsbasefilepaths;
+		foreach my $thispath (@{$exportbasefilepathmatrix}) {
+			push (@currentlmsbasefilepaths, $thispath->{'lmsbasepath'});
+		}
+
+		my %seen;
+		@seen{@currentlmsbasefilepaths} = ();
+
+		foreach my $newdir (@{$lmsmusicdirs}) {
+			push (@{$exportbasefilepathmatrix}, {lmsbasepath => $newdir, substitutebasepath => ''}) unless exists $seen{$newdir};
+		}
+		$prefs->set('exportbasefilepathmatrix', \@{$exportbasefilepathmatrix});
+	}
+}
+
+
 sub setStartVolumeLevel {
 	my $request = shift;
 	my $client = $request->client();
@@ -653,6 +818,30 @@ sub getPlaylistIDforName {
 	} else {
 		$log->warn("Couldn't find selected playlist to link to.")
 	}
+}
+
+sub getMusicDirs {
+	my $mediadirs = $serverPrefs->get('mediadirs');
+	my $ignoreInAudioScan = $serverPrefs->get('ignoreInAudioScan');
+	my $lmsmusicdirs = [];
+	my %musicdircount;
+	my $thisdir;
+	foreach $thisdir (@{$mediadirs}, @{$ignoreInAudioScan}) {$musicdircount{$thisdir}++}
+	foreach $thisdir (keys %musicdircount) {
+		if ($musicdircount{$thisdir} == 1) {
+			push (@{$lmsmusicdirs}, $thisdir);
+		}
+	}
+	return $lmsmusicdirs;
+}
+
+sub pathForItem {
+	my $item = shift;
+	if (Slim::Music::Info::isFileURL($item) && !Slim::Music::Info::isFragment($item)) {
+		my $path = Slim::Utils::Misc::fixPath($item) || return 0;
+		return Slim::Utils::Misc::pathFromFileURL($path);
+	}
+	return $item;
 }
 
 sub parse_duration {

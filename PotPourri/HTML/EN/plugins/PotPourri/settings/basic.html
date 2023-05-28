@@ -1,7 +1,8 @@
 <style>.githublink{padding-left:22px;}</style>
+[% page = "PLUGIN_POTPOURRI" %]
 [% PROCESS settings/header.html %]
-<span[% IF systemSkin != "material" %] class="githublink"[% END %]><a href="[% "PLUGIN_POTPOURRI_SETTINGS_GITHUB_LINK" | string %]" target="_blank" rel="noopener noreferrer"><b>[% "PLUGIN_POTPOURRI_SETTINGS_GITHUB_LINK_TEXT" | string %]</b></a></span>
-<br><br>
+
+[% PROCESS plugins/PotPourri/settings/subpage_chooser.html %]
 
 [% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST" desc="PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST_DESC" %]
 [% IF playlistcount %]
