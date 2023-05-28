@@ -2,6 +2,7 @@
 <script TYPE="text/javascript">
 	function inprogress(elementid) {
 		document.getElementById(elementid).className = "inprogress";
+		setTimeout(function() {document.getElementById('exportbtn').disabled = true;}, 200);
 	}
 </script>
 
@@ -26,7 +27,7 @@
 	<div>[% "PLUGIN_POTPOURRI_SETTINGS_EXPORT_NOPLFOUND" | string %]</div>
 	[% END %]
 <br><br>
-<input name="export" type="submit" onclick="inprogress('exportstatus');" class="stdclick" value="[% "PLUGIN_POTPOURRI_SETTINGS_EXPORT_PLAYLISTS_TO_FILES_BUTTON" | string %]">
+<input name="export" id="exportbtn" type="submit" onclick="inprogress('exportstatus');" class="stdclick" value="[% "PLUGIN_POTPOURRI_SETTINGS_EXPORT_PLAYLISTS_TO_FILES_BUTTON" | string %]">
 <span class='status' id='exportstatus'>[% "PLUGIN_POTPOURRI_SETTINGS_EXPORT_INPROGRESS" | string %]</span>
 [% END %]
 <br>

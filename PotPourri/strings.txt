@@ -195,6 +195,9 @@ PLUGIN_POTPOURRI_SETTINGS_EXPORT_PLAYLISTS_TO_FILES
 PLUGIN_POTPOURRI_SETTINGS_EXPORT_PLAYLISTS_TO_FILES_DESC
 	EN	Select a playlist and export its tracks to playlist files and have PPT change the file paths or file extensions according to the settings below.<br>Files are exported to the <i>LMS playlists</i> folder and have a m3u.txt-extension so they won't get picked up by LMS scans.
 
+PLUGIN_POTPOURRI_SETTINGS_EXPORT_NOPLFOUND
+	EN	Found no playlists
+
 PLUGIN_POTPOURRI_SETTINGS_EXPORT_PLAYLISTS_TO_FILES_BUTTON
 	EN	Export now
 
