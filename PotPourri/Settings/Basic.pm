@@ -28,7 +28,6 @@ use base qw(Plugins::PotPourri::Settings::BaseSettings);
 
 use Slim::Utils::Prefs;
 use Slim::Utils::Log;
-use Data::Dumper;
 
 my $log = logger('plugin.potpourri');
 my $prefs = preferences('plugin.potpourri');
@@ -94,7 +93,7 @@ sub beforeRender {
 		}
 		my @sortedarray = sort {$a->{id} <=> $b->{id}} @pagePLarray;
 
-		$log->debug('sorted playlists = '.Dumper(\@sortedarray));
+		main::DEBUGLOG && $log->is_debug && $log->debug('sorted playlists = '.Data::Dump::dump(\@sortedarray));
 		if ($toplevelplaylistname ne 'none') {
 			$paramRef->{homemenuplaylist} = 'linked';
 		}

@@ -37,11 +37,6 @@ use Time::HiRes qw(time);
 use POSIX qw(strftime);
 use Slim::Schema;
 use File::Spec::Functions qw(:ALL);
-use URI::Escape qw(uri_escape_utf8 uri_unescape);
-use Data::Dumper;
-
-use Plugins::PotPourri::Settings::Basic;
-use Plugins::PotPourri::Settings::Export;
 
 my $log = Slim::Utils::Log->addLogCategory({
 	'category' => 'plugin.potpourri',
@@ -117,7 +112,7 @@ sub initPrefs {
 	$prefs->setValidate({'validator' => \&isTimeOrEmpty}, 'powerofftime');
 
 	$prefs->setChange(sub {
-			$log->debug('Change in toplevelPL config detected. Reinitializing top level PL link.');
+			main::DEBUGLOG && $log->is_debug && $log->debug('Change in toplevelPL config detected. Reinitializing top level PL link.');
 			initPLtoplevellink();
 		}, 'toplevelplaylistname', 'alterativetoplevelplaylistname');
 	$prefs->setChange(\&powerOffClientsScheduler, 'enablescheduledclientspoweroff', 'powerofftime');
@@ -128,9 +123,9 @@ sub initPrefs {
 
 sub postinitPlugin {
 	$apc_enabled = Slim::Utils::PluginManager->isEnabled('Plugins::AlternativePlayCount::Plugin');
-	$log->debug('Plugin "Alternative Play Count" is enabled') if $apc_enabled;
+	main::DEBUGLOG && $log->is_debug && $log->debug('Plugin "Alternative Play Count" is enabled') if $apc_enabled;
 	$material_enabled = Slim::Utils::PluginManager->isEnabled('Plugins::MaterialSkin::Plugin');
-	$log->debug('Plugin "Material Skin" is enabled') if $material_enabled;
+	main::DEBUGLOG && $log->is_debug && $log->debug('Plugin "Material Skin" is enabled') if $material_enabled;
 
 	unless (!Slim::Schema::hasLibrary() || Slim::Music::Import->stillScanning) {
 		initPLtoplevellink();
@@ -145,7 +140,7 @@ sub playlistSortContextMenu {
 
 	my $playlistID= $obj->id;
 	my $playlistName = $obj->name;
-	$log->debug('playlist name = '.$playlistName.' ## playlist url = '.Dumper($url));
+	main::DEBUGLOG && $log->is_debug && $log->debug('playlist name = '.$playlistName.' ## playlist url = '.Data::Dump::dump($url));
 
 	if ($tags->{menuMode}) {
 		return {
@@ -178,10 +173,10 @@ sub changePLtrackOrder_web {
 
 	my $playlistID = $params->{playlistid};
 	my $playlistName = $params->{playlistname};
-	$log->debug('playlistID = '.$playlistID.' ## playlistName = '.Dumper($playlistName));
+	main::DEBUGLOG && $log->is_debug && $log->debug('playlistID = '.$playlistID.' ## playlistName = '.Data::Dump::dump($playlistName));
 
 	my $sortOption = $params->{sortoption};
-	$log->debug('sortOption = '.Dumper($sortOption));
+	main::DEBUGLOG && $log->is_debug && $log->debug('sortOption = '.Data::Dump::dump($sortOption));
 	$params->{playlistid} = $playlistID;
 	$params->{playlistname} = $playlistName;
 	$params->{apc_enabled} = 1 if $apc_enabled;
@@ -213,7 +208,7 @@ sub changePLtrackOrder_jive_choice {
 	}
 	my $playlistID = $request->getParam('_playlistid');
 	my $playlistName = $request->getParam('_playlistname');
-	$log->debug('playlistid = '.Dumper($playlistID));
+	main::DEBUGLOG && $log->is_debug && $log->debug('playlistid = '.Data::Dump::dump($playlistID));
 	return unless $playlistID;
 
 	my @sortOptionKeys = sort {$a <=> $b} keys (%sortOptionLabels);
@@ -268,7 +263,7 @@ sub changePLtrackOrder_jive {
 	my $playlistName = $request->getParam('_playlistname');
 
 	return unless $playlistID && $sortOption;
-	$log->debug('playlistid = '.$playlistID.' ## sortOption = '.$sortOption);
+	main::DEBUGLOG && $log->is_debug && $log->debug('playlistid = '.$playlistID.' ## sortOption = '.$sortOption);
 
 	my $failed = changePLtrackOrder($playlistID, $sortOption, $playlistName);
 
@@ -302,16 +297,16 @@ sub changePLtrackOrder {
 	$playlist->update;
 
 	if ($playlist->content_type eq 'ssp') {
-		$log->debug('Writing playlist to disk.');
+		main::DEBUGLOG && $log->is_debug && $log->debug('Writing playlist to disk.');
 		Slim::Formats::Playlists->writeList(\@PLtracks, undef, $playlist->url);
 	}
 
 	Slim::Schema->forceCommit;
 	Slim::Schema->wipeCaches;
 	if ($playlistName) {
-		$log->info('Sorting the playlist "'.$playlistName.'" by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
+		main::INFOLOG && $log->is_info && $log->info('Sorting the playlist "'.$playlistName.'" by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
 	} else {
-		$log->info('Sorting the playlist by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
+		main::INFOLOG && $log->is_info && $log->info('Sorting the playlist by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
 	}
 
 	return 0;
@@ -319,7 +314,7 @@ sub changePLtrackOrder {
 
 sub handleFeed {
 	my ($client, $callback, $params, $args) = @_;
-	$log->debug('client ID:'.$client->name.' ## client ID:'.$client->id);
+	main::DEBUGLOG && $log->is_debug && $log->debug('client ID:'.$client->name.' ## client ID:'.$client->id);
 
 	my $items = [
 		{
@@ -357,11 +352,11 @@ sub changeClientPLTrackOrder {
 	my ($client, $cb, $params, $args) = @_;
 	return if !$client;
 
-	$log->info('client ID:'.$client->name.' ## client ID:'.$client->id);
+	main::INFOLOG && $log->is_info && $log->info('client ID:'.$client->name.' ## client ID:'.$client->id);
 	my $started = time();
 
 	my $sortOption = $args->{'sortOption'};
-	$log->debug('sortOption = '.Dumper($sortOption));
+	main::DEBUGLOG && $log->is_debug && $log->debug('sortOption = '.Data::Dump::dump($sortOption));
 
 	my @PLtracks = @{Slim::Player::Playlist::playList($client)};
 
@@ -381,7 +376,7 @@ sub changeClientPLTrackOrder {
 	$client->currentPlaylistUpdateTime(Time::HiRes::time());
 	Slim::Player::Playlist::refreshPlaylist($client);
 
-	$log->info('Sorting current playlist of client "'.$client->name.'" by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
+	main::INFOLOG && $log->is_info && $log->info('Sorting current playlist of client "'.$client->name.'" by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
 
 	my $items = [
 		{
@@ -400,7 +395,7 @@ sub changeClientPLTrackOrder {
 
 sub sortTracks {
 	my ($sortOption, @tracks) = @_;
-	$log->debug('sortOption = '.Dumper($sortOption));
+	main::DEBUGLOG && $log->is_debug && $log->debug('sortOption = '.Data::Dump::dump($sortOption));
 
 	# Randomize
 	if ($sortOption == 1) {
@@ -517,7 +512,7 @@ sub sortTracks {
 # export static playlists with new paths/file extensions
 sub exportPlaylistsToFiles {
 	my $playlistID = shift;
-$log->info('playlistID = '.Dumper($playlistID));
+main::INFOLOG && $log->is_info && $log->info('playlistID = '.Data::Dump::dump($playlistID));
 
 	my $status_exportingtoplaylistfiles = $prefs->get('status_exportingtoplaylistfiles');
 	if ($status_exportingtoplaylistfiles == 1) {
@@ -563,9 +558,9 @@ $log->info('playlistID = '.Dumper($playlistID));
 		close $output;
 	}
 
-	$log->debug('TOTAL number of tracks exported: '.$trackCount);
+	main::DEBUGLOG && $log->is_debug && $log->debug('TOTAL number of tracks exported: '.$trackCount);
 	$prefs->set('status_exportingtoplaylistfiles', 0);
-	$log->debug('Export completed after '.(time() - $started).' seconds.');
+	main::DEBUGLOG && $log->is_debug && $log->debug('Export completed after '.(time() - $started).' seconds.');
 }
 
 sub changeExportFilePath {
@@ -575,65 +570,65 @@ sub changeExportFilePath {
 
 	if (scalar @{$exportbasefilepathmatrix} > 0) {
 		my $oldtrackURL = $trackURL;
-		my $escaped_trackURL = uri_escape_utf8($trackURL);
+		my $escaped_trackURL = escape($trackURL);
 		my $exportextension = $prefs->get('exportextension');
 		my $exportExtensionExceptionsString = $prefs->get('exportextensionexceptions');
 
 		foreach my $thispath (@{$exportbasefilepathmatrix}) {
 			my $lmsbasepath = $thispath->{'lmsbasepath'};
-			$log->info("\n\n\nisEXTURL = ".Dumper($isEXTURL));
-			$log->info('trackURL = '.Dumper($oldtrackURL));
-			$log->info('escaped_trackURL = '.$escaped_trackURL);
+			main::INFOLOG && $log->is_info && $log->info("\n\n\nisEXTURL = ".Data::Dump::dump($isEXTURL));
+			main::INFOLOG && $log->is_info && $log->info('trackURL = '.Data::Dump::dump($oldtrackURL));
+			main::INFOLOG && $log->is_info && $log->info('escaped_trackURL = '.$escaped_trackURL);
 			if ($isEXTURL) {
 				$lmsbasepath =~ s/\\/\//isg;
 				$escaped_trackURL =~ s/%2520/%20/isg;
 			}
-			$log->info('escaped_trackURL after EXTURL regex = '.$escaped_trackURL);
+			main::INFOLOG && $log->is_info && $log->info('escaped_trackURL after EXTURL regex = '.$escaped_trackURL);
 
-			my $escaped_lmsbasepath = uri_escape_utf8($lmsbasepath);
-			$log->info('escaped_lmsbasepath = '.$escaped_lmsbasepath);
+			my $escaped_lmsbasepath = escape($lmsbasepath);
+			main::INFOLOG && $log->is_info && $log->info('escaped_lmsbasepath = '.$escaped_lmsbasepath);
 
 			if (($escaped_trackURL =~ $escaped_lmsbasepath) && (defined ($thispath->{'substitutebasepath'})) && (($thispath->{'substitutebasepath'}) ne '')) {
 				my $substitutebasepath = $thispath->{'substitutebasepath'};
-				$log->info('substitutebasepath = '.$substitutebasepath);
+				main::INFOLOG && $log->is_info && $log->info('substitutebasepath = '.$substitutebasepath);
 				if ($isEXTURL) {
 					$substitutebasepath =~ s/\\/\//isg;
 				}
-				my $escaped_substitutebasepath = uri_escape_utf8($substitutebasepath);
-				$log->info('escaped_substitutebasepath = '.$escaped_substitutebasepath);
+				my $escaped_substitutebasepath = escape($substitutebasepath);
+				main::INFOLOG && $log->is_info && $log->info('escaped_substitutebasepath = '.$escaped_substitutebasepath);
 
 				if (defined $exportextension && $exportextension ne '') {
 					my ($LMSfileExtension) = $escaped_trackURL =~ /(\.[^.]*)$/;
 					$LMSfileExtension =~ s/\.//s;
-					$log->info("LMS file extension is '$LMSfileExtension'");
+					main::INFOLOG && $log->is_info && $log->info("LMS file extension is '$LMSfileExtension'");
 
 					# file extension replacement - exceptions
 					my %extensionExceptionsHash;
 					if (defined $exportExtensionExceptionsString && $exportExtensionExceptionsString ne '') {
 						$exportExtensionExceptionsString =~ s/ //g;
 						%extensionExceptionsHash = map {$_ => 1} (split /,/, lc($exportExtensionExceptionsString));
-						$log->debug('extensionExceptionsHash = '.Dumper(\%extensionExceptionsHash));
+						main::DEBUGLOG && $log->is_debug && $log->debug('extensionExceptionsHash = '.Data::Dump::dump(\%extensionExceptionsHash));
 					}
 
 					if ((scalar keys %extensionExceptionsHash > 0) && $extensionExceptionsHash{lc($LMSfileExtension)}) {
-						$log->info("The file extension '$LMSfileExtension' is not replaced because it is included in the list of exceptions.");
+						main::INFOLOG && $log->is_info && $log->info("The file extension '$LMSfileExtension' is not replaced because it is included in the list of exceptions.");
 					} else {
 						$escaped_trackURL =~ s/\.[^.]*$/\.$exportextension/isg;
 					}
 				}
 
 				$escaped_trackURL =~ s/$escaped_lmsbasepath/$escaped_substitutebasepath/isg;
-				$log->info('escaped_trackURL AFTER regex replacing = '.$escaped_trackURL);
+				main::INFOLOG && $log->is_info && $log->info('escaped_trackURL AFTER regex replacing = '.$escaped_trackURL);
 
-				$trackURL = Encode::decode('utf8', uri_unescape($escaped_trackURL));
-				$log->info('UNescaped trackURL = '.$trackURL);
+				$trackURL = Encode::decode('utf8', unescape($escaped_trackURL));
+				main::INFOLOG && $log->is_info && $log->info('UNescaped trackURL = '.$trackURL);
 
 				if ($isEXTURL) {
 					$trackURL =~ s/ /%20/isg;
 				} else {
 					$trackURL = Slim::Utils::Unicode::utf8decode_locale($trackURL);
 				}
-				$log->info('old url: '.$oldtrackURL."\nlmsbasepath = ".$lmsbasepath."\nsubstitutebasepath = ".$substitutebasepath."\nnew url = ".$trackURL);
+				main::INFOLOG && $log->is_info && $log->info('old url: '.$oldtrackURL."\nlmsbasepath = ".$lmsbasepath."\nsubstitutebasepath = ".$substitutebasepath."\nnew url = ".$trackURL);
 			}
 		}
 	}
@@ -686,19 +681,19 @@ sub setStartVolumeLevel {
 
 		my $volume = $enabledSetStartVolumeLevel == 2 ? $clientPrefs->get('lastVolume') || 18 : $clientPrefs->get('presetVolume');
 		if (!$clientPrefs->get('allowRaise')) {
-			$log->debug("allowRaise disabled. Current: ".$curVolume." Target: ".$volume);
+			main::DEBUGLOG && $log->is_debug && $log->debug("allowRaise disabled. Current: ".$curVolume." Target: ".$volume);
 			return if ($curVolume <= $volume);
 		}
-		$log->debug("Setting volume for client '".$client->name()."' to ".($enabledSetStartVolumeLevel == 2 ? "last" : "preset")." $volume");
+		main::DEBUGLOG && $log->is_debug && $log->debug("Setting volume for client '".$client->name()."' to ".($enabledSetStartVolumeLevel == 2 ? "last" : "preset")." $volume");
 		$client->execute(["mixer", "volume", $volume]);
 	} else {
 		$prefs->client($client)->set('lastVolume', $curVolume);
-		$log->debug("Saving last volume $curVolume for client '".$client->name()."'");
+		main::DEBUGLOG && $log->is_debug && $log->debug("Saving last volume $curVolume for client '".$client->name()."'");
 	}
 }
 
 sub powerOffClientsScheduler {
-	$log->debug('Killing existing timers for scheduled power-off');
+	main::DEBUGLOG && $log->is_debug && $log->debug('Killing existing timers for scheduled power-off');
 	Slim::Utils::Timers::killOneTimer(undef, \&powerOffClientsScheduler);
 	my $enableScheduledClientsPowerOff = $prefs->get('enablescheduledclientspoweroff');
 	if ($enableScheduledClientsPowerOff) {
@@ -721,7 +716,7 @@ sub powerOffClientsScheduler {
 			my $currenttime = $hour * 60 * 60 + $min * 60;
 
 			if ($currenttime == $powerOffTime) {
-				$log->info('Current time '.parse_duration($currenttime).' = scheduled power-off time '.$powerOffTimeUnparsed.'. Powering off all players now.');
+				main::INFOLOG && $log->is_info && $log->info('Current time '.parse_duration($currenttime).' = scheduled power-off time '.$powerOffTimeUnparsed.'. Powering off all players now.');
 				foreach my $client (Slim::Player::Client::clients()) {
 					if ($client->power()) {
 						$client->stop() if $client->isPlaying();
@@ -732,7 +727,7 @@ sub powerOffClientsScheduler {
 			} else {
 				my $timeleft = $powerOffTime - $currenttime;
 				$timeleft = $timeleft + 24 * 60 * 60 if $timeleft < 0; # it's past powerOffTime -> schedule for same time tomorrow
-				$log->info(parse_duration($timeleft)." until next scheduled power-off at ".$powerOffTimeUnparsed);
+				main::INFOLOG && $log->is_info && $log->info(parse_duration($timeleft)." until next scheduled power-off at ".$powerOffTimeUnparsed);
 				Slim::Utils::Timers::setTimer(undef, time() + $timeleft, \&powerOffClientsScheduler);
 			}
 		} else {
@@ -742,16 +737,16 @@ sub powerOffClientsScheduler {
 }
 
 sub initPLtoplevellink {
-	$log->debug('Started initializing playlist toplevel link.');
+	main::DEBUGLOG && $log->is_debug && $log->debug('Started initializing playlist toplevel link.');
 	# deregister item first
 	Slim::Menu::BrowseLibrary->deregisterNode('PTP_HOMEMENU_TOPLEVEL_LINKEDPLAYLIST');
 
 	# link to playlist in home menu
 	my $toplevelplaylistname = $prefs->get('toplevelplaylistname') || 'none';
-	$log->debug('toplevelplaylistname = '.$toplevelplaylistname);
+	main::DEBUGLOG && $log->is_debug && $log->debug('toplevelplaylistname = '.$toplevelplaylistname);
 	if ($toplevelplaylistname ne 'none') {
 		my $toplevelplaylistID = getPlaylistIDforName($toplevelplaylistname);
-		$log->debug('name of linked playlist (ID: '.$toplevelplaylistID.') = '.$toplevelplaylistname);
+		main::DEBUGLOG && $log->is_debug && $log->debug('name of linked playlist (ID: '.$toplevelplaylistID.') = '.$toplevelplaylistname);
 
 		Slim::Menu::BrowseLibrary->registerNode({
 			type => 'link',
@@ -766,7 +761,7 @@ sub initPLtoplevellink {
 			cache => 0,
 		});
 	}
-	$log->debug('Finished initializing playlist toplevel link.');
+	main::DEBUGLOG && $log->is_debug && $log->debug('Finished initializing playlist toplevel link.');
 }
 
 
@@ -781,7 +776,7 @@ sub APCquery {
 	$sth->bind_columns(undef, \$returnVal);
 	$sth->fetch();
 	$sth->finish();
-	$log->debug('Current APC '.$queryType.' for trackurlmd5 ('.$trackURLmd5.') = '.$returnVal);
+	main::DEBUGLOG && $log->is_debug && $log->debug('Current APC '.$queryType.' for trackurlmd5 ('.$trackURLmd5.') = '.$returnVal);
 	return $returnVal;
 }
 
@@ -809,7 +804,7 @@ sub getPlaylistIDforName {
 	my $existsPL = $queryresult->getResult('count');
 	my $playlistid;
 	if ($existsPL > 0) {
-		$log->debug("Playlist '".$playlistname."' exists.");
+		main::DEBUGLOG && $log->is_debug && $log->debug("Playlist '".$playlistname."' exists.");
 		my $PLloop = $queryresult->getResult('playlists_loop');
 		foreach my $playlist (@{$PLloop}) {
 			$playlistid = $playlist->{id};
@@ -865,5 +860,8 @@ sub getCurrentDBH {
 }
 
 sub getDisplayName {'PLUGIN_POTPOURRI'}
+
+*escape = \&URI::Escape::uri_escape_utf8;
+*unescape = \&URI::Escape::uri_unescape;
 
 1;

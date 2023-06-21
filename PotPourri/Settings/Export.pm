@@ -31,7 +31,6 @@ use Slim::Utils::Prefs;
 use Slim::Utils::Misc;
 use Slim::Utils::Strings;
 use Slim::Utils::Strings qw(string cstring);
-use Data::Dumper;
 
 my $prefs = preferences('plugin.potpourri');
 my $log = logger('plugin.potpourri');
@@ -140,7 +139,7 @@ sub beforeRender {
 
 	if ($playlistcount > 0) {
 		my @sortedarray = sort {$a->{id} <=> $b->{id}} @localPlaylists;
-		$log->debug("sorted playlists = ".Dumper(\@sortedarray));
+		main::DEBUGLOG && $log->is_debug && $log->debug("sorted playlists = ".Data::Dump::dump(\@sortedarray));
 		$paramRef->{playlistcount} = $playlistcount;
 		$paramRef->{allplaylists} = \@sortedarray;
 	}
