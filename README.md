@@ -13,7 +13,7 @@ A collection of various small features.
 - **Change the track order of *saved static* playlists** (context menu) or **client playlists** (*App menu icon*). Multiple sort options available.
 - Set a **power-on volume level for players** that's enforced when players are switched on.[^1] The (sub)menu is listed on the *LMS Settings > Player* page.
 - Set a **time to turn off *all* players** each day. No more worries about idle players that you forgot to switch off.
-- **Export static playlists** to playlist files with custom **file paths and file extensions**.
+- **Export static playlists** to playlist files with custom **file paths and file extensions**[^2].
 <br><br><br>
 
 
@@ -43,3 +43,4 @@ If you want to report a new issue, please fill out this [**issue report template
 <br><br><br><br>
 
 [^1]:based on parts of E. Koldinger's [**Reset Volume**](https://github.com/koldinger/ResetVolume)
+[^2]:Files will be exported to the **LMS playlists folder** or alternatively to the **LMS preferences folder**.

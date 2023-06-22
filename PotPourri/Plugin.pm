@@ -521,7 +521,7 @@ main::INFOLOG && $log->is_info && $log->info('playlistID = '.Data::Dump::dump($p
 	}
 	$prefs->set('status_exportingtoplaylistfiles', 1);
 
-	my $exportDir = $serverPrefs->get('playlistdir');
+	my $exportDir = $serverPrefs->get('playlistdir') || Slim::Utils::OSDetect::dirsFor('prefs');
 	my $started = time();
 
 	my $playlist = Slim::Schema->find('Playlist', $playlistID);
