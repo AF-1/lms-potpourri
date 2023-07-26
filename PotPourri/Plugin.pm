@@ -768,7 +768,7 @@ sub initPLtoplevellink {
 sub APCquery {
 	my ($trackURLmd5, $queryType) = @_;
 	return if (!$trackURLmd5 || !$queryType);
-	my $dbh = getCurrentDBH();
+	my $dbh = Slim::Schema->dbh;
 	my $returnVal;
 	my $sql = "select ifnull($queryType, 0) from alternativeplaycount where urlmd5 = \"$trackURLmd5\"";
 	my $sth = $dbh->prepare($sql);
@@ -853,10 +853,6 @@ sub isTimeOrEmpty {
 		return 1;
 	}
 	return 0;
-}
-
-sub getCurrentDBH {
-	return Slim::Schema->storage->dbh();
 }
 
 sub getDisplayName {'PLUGIN_POTPOURRI'}
