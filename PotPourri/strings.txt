@@ -227,3 +227,34 @@ PLUGIN_POTPOURRI_SETTINGS_EXPORT_EXTENSIONEXCEPTIONS
 
 PLUGIN_POTPOURRI_SETTINGS_EXPORT_EXTENSIONEXCEPTIONS_DESC
 	EN	If you replace file extensions when exporting your playlist, you can specify here which extensions should be ignored, i.e. they won't be replaced. For example, if they already belong to a lossy format.<br><b>Multiple</b> extensions have to be separated by a <b>comma</b>.
+
+
+PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES
+	EN	Release Types
+
+PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_POSTSCAN
+	EN	Include release type<br>adjustment in LMS scan
+
+PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_POSTSCAN_DESC
+	EN	Always adjust release types when LMS performs a scan.
+
+PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_DESC
+	EN	If the title of an album contains your search string, its release type will be set to what you enter here.
+
+PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_ALBUMSEARCHSTRING
+	EN	Album Search String
+
+PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_RLTYPE
+	EN	Release Type
+
+PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_MANUAL_ADJUST
+	EN	Adjust Release Types Now
+
+PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_MANUAL_ADJUST_DESC
+	EN	Manually adjust the release type of albums now
+
+PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_MANUAL_ADJUST_BUTTON
+	EN	Adjust now
+
+PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_MANUAL_ADJUST_INPROGRESS
+	EN	adjusting album release types...

@@ -18,7 +18,10 @@
 		[% END %]
 
 	[% WRAPPER setting title="PLUGIN_POTPOURRI_RAISE" desc="PLUGIN_POTPOURRI_RAISE_DESC" %]
-		<input type="checkbox" class="stdedit" name="pref_allowRaise"[% IF prefs.allowRaise %] checked[% END %]>
+	<select class="stdedit" name="pref_allowRaise" id="allowRaise">
+		<option [% IF NOT prefs.allowRaise %]selected [% END %]value="0">[% 'NO' | getstring %]</option>
+		<option [% IF prefs.allowRaise %]selected [% END %]value="1">[% 'YES' | getstring %]</option>
+	</select>
 	[% END %]
 </div>
 

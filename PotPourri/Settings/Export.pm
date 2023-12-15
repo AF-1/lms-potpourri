@@ -106,7 +106,7 @@ sub handler {
 	my $exportbasefilepathmatrix = $prefs->get('exportbasefilepathmatrix');
 
 	if (scalar @{$exportbasefilepathmatrix} == 0) {
-		Plugins::RatingsLight::Plugin::initExportBaseFilePathMatrix();
+		Plugins::PotPourri::Plugin::initExportBaseFilePathMatrix();
 		$exportbasefilepathmatrix = $prefs->get('exportbasefilepathmatrix');
 	}
 

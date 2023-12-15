@@ -18,16 +18,22 @@
 <br>
 
 [% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_SCHEDULED_POWEROFF" desc="PLUGIN_POTPOURRI_SETTINGS_SCHEDULED_POWEROFF_DESC" %]
-	<input name="pref_enablescheduledclientspoweroff" id="enablescheduledclientspoweroff" type="checkbox"[% IF prefs.enablescheduledclientspoweroff %] checked[% END %]>
+	<select class="stdedit" name="pref_enablescheduledclientspoweroff" id="enablescheduledclientspoweroff">
+		<option [% IF NOT prefs.enablescheduledclientspoweroff %]selected [% END %]value="0">[% 'NO' | getstring %]</option>
+		<option [% IF prefs.enablescheduledclientspoweroff %]selected [% END %]value="1">[% 'YES' | getstring %]</option>
+	</select>
 [% END %]
 
 [% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_POWEROFFTIME" desc="PLUGIN_POTPOURRI_SETTINGS_POWEROFFTIME_DESC" %]
-	<input type="text" class="stdedit" name="pref_powerofftime" id="powerofftime" value="[% prefs.powerofftime %]" size="3">
+	<input type="text" class="stdedit" name="pref_powerofftime" id="powerofftime" value="[% prefs.powerofftime %]" size="4">
 [% END %]
 <br>
 
 [% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_APPITEM" desc="PLUGIN_POTPOURRI_SETTINGS_APPITEM_DESC" %]
-	<input name="pref_appitem" id="appitem" type="checkbox"[% IF prefs.appitem %] checked[% END %]>
+	<select class="stdedit" name="pref_appitem" id="appitem">
+		<option [% IF NOT prefs.appitem %]selected [% END %]value="0">[% 'NO' | getstring %]</option>
+		<option [% IF prefs.appitem %]selected [% END %]value="1">[% 'YES' | getstring %]</option>
+	</select>
 [% END %]
 
 [% PROCESS settings/footer.html %]

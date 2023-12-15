@@ -3,16 +3,17 @@
 	<id>af75ac4f-d757-7cdb-b390-dbea4791f646</id>
 	<name>PLUGIN_POTPOURRI</name>
 	<module>Plugins::PotPourri::Plugin</module>
-	<version>0.3.6</version>
+	<version>0.4.0</version>
 	<description>PLUGIN_POTPOURRI_DESC</description>
 	<creator>AF</creator>
 	<optionsURL>plugins/PotPourri/settings/basic.html</optionsURL>
+	<importmodule>Plugins::PotPourri::Importer</importmodule>
 	<icon>plugins/PotPourri/html/images/ppt_icon_svg.png</icon>
 	<homepageURL>https://github.com/AF-1/lms-potpourri</homepageURL>
 	<defaultState>enabled</defaultState>
 	<targetApplication>
 		<id>Logitech Media Server</id>
-		<minVersion>8.2</minVersion>
+		<minVersion>8.3</minVersion>
 		<maxVersion>*</maxVersion>
 	</targetApplication>
 </extension>

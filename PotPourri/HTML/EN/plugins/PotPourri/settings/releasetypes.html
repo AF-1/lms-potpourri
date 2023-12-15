@@ -1,0 +1,72 @@
+<style>.curselfiletag{padding-left:30px;}.rlbold{font-weight:bold;}</style>
+<script TYPE="text/javascript">
+	function inprogress(elementid) {
+		document.getElementById(elementid).className = "inprogress";
+		setTimeout(function() {document.getElementById('exportbtn').disabled = true;}, 200);
+	}
+</script>
+
+<style>
+@-webkit-keyframes Pulse{from{color:#630030;-webkit-text-shadow:0 0 2px transparent}50%{color:#e33100;-webkit-text-shadow:0 0 5px #e33100}to{color:#630030;-webkit-text-shadow:0 0 2px transparent}}@keyframes Pulse{from{color:#630030;text-shadow:0 0 2px transparent}50%{color:#e33100;text-shadow:0 0 5px #e33100}to{color:#630030;text-shadow:0 0 2px transparent}}.inprogress{padding-left:15px;-webkit-animation-name:Pulse;animation-name:Pulse;-webkit-animation-duration:2s;animation-duration:2s;-webkit-animation-iteration-count:infinite;animation-iteration-count:infinite}
+.status{visibility:hidden;}
+</style>
+
+[% page = "PLUGIN_POTPOURRI" %]
+[% PROCESS settings/header.html %]
+
+[% PROCESS plugins/PotPourri/settings/subpage_chooser.html %]
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_POSTSCAN" desc="PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_POSTSCAN_DESC" %]
+	<select class="stdedit" name="pref_postscan_rltypes" id="postscan_rltypes">
+		<option [% IF NOT prefs.postscan_rltypes %]selected [% END %]value="0">[% 'NO' | getstring %]</option>
+		<option [% IF prefs.postscan_rltypes %]selected [% END %]value="1">[% 'YES' | getstring %]</option>
+	</select>
+[% END %]
+<br>
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES" desc="PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_DESC" %]
+
+<table size="100">
+	<tr>
+		<th style="text-align:center;"><b>[% "PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_ALBUMSEARCHSTRING" | string %]</b></th>
+		<th>&nbsp;&nbsp;&nbsp;&nbsp;</th>
+		<th style="text-align:center;padding-left:8px;"><b>[% "PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_RLTYPE" | string %]</b></th>
+	</tr>
+	<tr>
+		<th style="height:4px;" colspan="3"></th>
+	</tr>
+	[% FOREACH thisrltype = rltypematrix; idx = loop.count %]
+	<tr>
+		<td>
+			<input type="text" class="stdedit"
+			name="pref_albumtitlesearchstring_[% idx %]" value="[% thisrltype.albumtitlesearchstring %]"
+			placeholder="[% thisrltype.albumtitlesearchstring %]" autocomplete="off" size="50">
+		</td>
+		<td>&nbsp;&nbsp;=></td>
+		<td style="padding-left:8px;">
+			<select name="pref_releasetype_[% idx %]">
+				[% FOREACH option = {
+					'SINGLE' => 'RELEASE_TYPE_SINGLE',
+					'EP' => 'RELEASE_TYPE_EP',
+					'BESTOF' => 'RELEASE_TYPE_BESTOF',
+					'BOXSET' => 'RELEASE_TYPE_BOXSET',
+					'BROADCAST' => 'RELEASE_TYPE_BROADCAST',
+					'OTHER' => 'RELEASE_TYPE_OTHER',
+				} %]
+					<option [% IF thisrltype.releasetype == option.key %]selected='selected' [% END %]value="[% option.key %]">[% option.value | string %]</option>
+				[%- END -%]
+			</select>
+		</td>
+	</tr>
+	[% END %]
+</table>
+[% END %]
+<br>
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_MANUAL_ADJUST" desc="PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_MANUAL_ADJUST_DESC" %]
+	<input name="rlmanualadjust" type="submit" class="stdclick" onclick="inprogress('rlmanualadjust');" value="[% "PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_MANUAL_ADJUST_BUTTON" | string %]">
+	<span class='status' id='rlmanualadjust'>[% "PLUGIN_POTPOURRI_SETTINGS_RELEASETYPES_MANUAL_ADJUST_INPROGRESS" | string %]</span>
+[% END %]
+<br>
+
+[% PROCESS settings/footer.html %]

@@ -48,6 +48,11 @@ my $prefs = preferences('plugin.potpourri');
 my %sortOptionLabels;
 my ($apc_enabled, $material_enabled);
 
+if (Slim::Utils::Versions->compareVersions($::VERSION, '8.4') >= 0) {
+	use Plugins::PotPourri::Common ':all';
+	use Plugins::PotPourri::Importer;
+}
+
 sub initPlugin {
 	my $class = shift;
 
@@ -59,6 +64,10 @@ sub initPlugin {
 		Plugins::PotPourri::Settings::Basic->new($class);
 		Plugins::PotPourri::Settings::Export->new($class);
 		Plugins::PotPourri::PlayerSettings->new();
+		if (Slim::Utils::Versions->compareVersions($::VERSION, '8.4') >= 0) {
+			require Plugins::PotPourri::Settings::ReleaseTypes;
+			Plugins::PotPourri::Settings::ReleaseTypes->new($class);
+		}
 	}
 
 	Slim::Menu::PlaylistInfo->registerInfoProvider(potpourri_changeplsortorder => (
