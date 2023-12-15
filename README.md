@@ -5,7 +5,14 @@ A plugin for [Logitech Media Server](https://github.com/Logitech/slimserver)<br>
 
 A collection of various small features.
 <br><br>
-[⬅️ **Back to the list of all plugins**](https://github.com/AF-1/)
+## Requirements
+
+- LMS version >= 8.**3**
+- LMS database = **SQLite**
+
+<br>
+<a href="https://github.com/AF-1/">⬅️ <b>Back to the list of all plugins</b></a>
+
 <br><br><br>
 
 
@@ -14,6 +21,7 @@ A collection of various small features.
 - Set a **power-on volume level for players** that's enforced when players are switched on.[^1] The (sub)menu is listed on the *LMS Settings > Player* page.
 - Set a **time to turn off *all* players** each day. No more worries about idle players that you forgot to switch off.
 - **Export static playlists** to playlist files with custom **file paths and file extensions**[^2].
+- **Adjust album *release types*** based on keywords in the album title (e.g. [Single]). Requires LMS version >= 8.**4**.
 <br><br><br>
 
 
