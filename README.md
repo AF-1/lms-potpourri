@@ -3,7 +3,7 @@ PotPourri
 
 A plugin for [Logitech Media Server](https://github.com/Logitech/slimserver)<br>
 
-A collection of various small features.
+A collection of various small [features](https://github.com/AF-1/lms-potpourri#features).
 <br><br>
 ## Requirements
 
@@ -18,14 +18,21 @@ A collection of various small features.
 
 ## Features:
 - **Change the track order of *saved static* playlists** (context menu) or **client playlists** (*App menu icon*). Multiple sort options available.
+
 - Set a **power-on volume level for players** that's enforced when players are switched on.[^1] The (sub)menu is listed on the *LMS Settings > Player* page.
+
 - Set a **time to turn off *all* players** each day. No more worries about idle players that you forgot to switch off.
+
 - **Export static playlists** to playlist files with custom **file paths and file extensions**[^2].
+
 - **Adjust album *release types*** based on keywords in the album title (e.g. [Single]). Requires LMS version >= 8.**4**.
+
+- Use **(key)words** in your music files' <b><u>comment</u> tags</b> to add **extra information** to the **song details page** / context menu information or to define and display **custom title formats**[^3].
 <br><br><br>
 
 
-## Screenshots
+## Screenshots (of some features)
+
 <img src="screenshots/ppt.gif" width="100%">
 <br><br><br>
 
@@ -52,3 +59,4 @@ If you want to report a new issue, please fill out this [**issue report template
 
 [^1]:based on parts of E. Koldinger's [**Reset Volume**](https://github.com/koldinger/ResetVolume)
 [^2]:Files will be exported to the **LMS playlists folder** or alternatively to the **LMS preferences folder**.
+[^3]:<b>Custom title formats</b> can be used to display a <i>short</i> string or a character on the <i>Now Playing screensaver</i> and the <i>Music Information plugin screensaver</i> or to append a string to the track title.
