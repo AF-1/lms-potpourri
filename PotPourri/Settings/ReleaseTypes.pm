@@ -30,7 +30,6 @@ use Slim::Utils::Log;
 use Slim::Utils::Prefs;
 use Slim::Utils::Misc;
 use Slim::Utils::Strings;
-use Slim::Utils::Strings qw(string cstring);
 
 my $prefs = preferences('plugin.potpourri');
 my $log = logger('plugin.potpourri');

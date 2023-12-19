@@ -60,9 +60,11 @@ sub initPlugin {
 	if (main::WEBUI) {
 		require Plugins::PotPourri::Settings::Basic;
 		require Plugins::PotPourri::Settings::Export;
+		require Plugins::PotPourri::Settings::CommentTagInfo;
 		require Plugins::PotPourri::PlayerSettings;
 		Plugins::PotPourri::Settings::Basic->new($class);
 		Plugins::PotPourri::Settings::Export->new($class);
+		Plugins::PotPourri::Settings::CommentTagInfo->new($class);
 		Plugins::PotPourri::PlayerSettings->new();
 		if (Slim::Utils::Versions->compareVersions($::VERSION, '8.4') >= 0) {
 			require Plugins::PotPourri::Settings::ReleaseTypes;
@@ -106,15 +108,6 @@ sub initPrefs {
 		appitem => 1,
 	});
 
-	$prefs->setValidate({
-		validator => sub {
-			if (defined $_[1] && $_[1] ne '') {
-				return if $_[1] =~ m|[\^{}$@<>"#%?*:/\|\\]|;
-				return if $_[1] =~ m|.{61,}|;
-			}
-			return 1;
-		}
-	}, 'alterativetoplevelplaylistname');
 	$prefs->set('status_exportingtoplaylistfiles', '0');
 
 	$prefs->setValidate({'validator' => 'intlimit', 'low' => 0, 'high' => 100}, 'presetVolume');
@@ -123,8 +116,13 @@ sub initPrefs {
 	$prefs->setChange(sub {
 			main::DEBUGLOG && $log->is_debug && $log->debug('Change in toplevelPL config detected. Reinitializing top level PL link.');
 			initPLtoplevellink();
-		}, 'toplevelplaylistname', 'alterativetoplevelplaylistname');
+		}, 'toplevelplaylistname');
 	$prefs->setChange(\&powerOffClientsScheduler, 'enablescheduledclientspoweroff', 'powerofftime');
+	$prefs->setChange(sub {
+			main::DEBUGLOG && $log->is_debug && $log->debug('Change in comment tag info config matrix detected. Reinitializing trackinfohandler & titleformats.');
+			initMatrix();
+			Slim::Music::Info::clearFormatDisplayCache();
+		}, 'commenttaginfoconfigmatrix');
 
 	my $i = 1;
 	%sortOptionLabels = map { $i++ => $_ } ('Random order', 'Inverted order', 'Artist > album > disc no. > track no.', 'Album > artist > disc no. > track no.', 'Album > disc no. > track no.', 'Genre', 'Year', 'Track number', 'Track title', 'Date added', 'Play count', 'Play count (APC)', 'Date last played', 'Date last played (APC)', 'Rating', 'Dynamic played/skipped value (APC)', 'Track length', 'BPM', 'Bitrate', 'Album artist', 'Composer', 'Conductor', 'Band');
@@ -140,6 +138,7 @@ sub postinitPlugin {
 		initPLtoplevellink();
 	}
 	powerOffClientsScheduler();
+	initMatrix();
 }
 
 
@@ -673,6 +672,177 @@ sub initExportBaseFilePathMatrix {
 }
 
 
+# use comment tag info for song info & title formats
+sub initMatrix {
+	main::DEBUGLOG && $log->is_debug && $log->debug('Start initializing trackinfohandler & titleformats.');
+	my $configmatrix = $prefs->get('commenttaginfoconfigmatrix');
+
+	if (keys %{$configmatrix} > 0) {
+		foreach my $thisconfig (keys %{$configmatrix}) {
+			my $enabled = $configmatrix->{$thisconfig}->{'enabled'};
+			next if (!defined $enabled);
+
+			my $thisconfigID = $thisconfig;
+			main::DEBUGLOG && $log->is_debug && $log->debug('thisconfigID = '.$thisconfigID);
+			my $regID = 'PPT_TIHregID_'.$thisconfigID;
+			main::DEBUGLOG && $log->is_debug && $log->debug('trackinfohandler ID = '.$regID);
+			Slim::Menu::TrackInfo->deregisterInfoProvider($regID);
+
+			my $searchstring = $configmatrix->{$thisconfig}->{'searchstring'};
+			my $contextmenucategoryname = $configmatrix->{$thisconfig}->{'contextmenucategoryname'};
+			my $contextmenucategorycontent = $configmatrix->{$thisconfig}->{'contextmenucategorycontent'};
+
+			if (defined $searchstring && defined $contextmenucategoryname && defined $contextmenucategorycontent) {
+				my $contextmenuposition = $configmatrix->{$thisconfig}->{'contextmenuposition'};
+				my $possiblecontextmenupositions = [
+					"after => 'artwork'", # 0
+					"after => 'bottom'", # 1
+					"parent => 'moreinfo', isa => 'top'", # 2
+					"parent => 'moreinfo', isa => 'bottom'" # 3
+				];
+				my $thisPos = @{$possiblecontextmenupositions}[$contextmenuposition];
+				Slim::Menu::TrackInfo->registerInfoProvider($regID => (
+					eval($thisPos),
+					func => sub {
+						return getTrackInfo(@_,$thisconfigID);
+					}
+				));
+			}
+			my $titleformatname = $configmatrix->{$thisconfig}->{'titleformatname'};
+			my $titleformatdisplaystring = $configmatrix->{$thisconfig}->{'titleformatdisplaystring'};
+			if (defined $searchstring && defined $titleformatname && defined $titleformatdisplaystring) {
+				my $TF_name = 'PPT_'.uc(trim_all($titleformatname));
+				main::DEBUGLOG && $log->is_debug && $log->debug('titleformat name = '.$TF_name);
+				addTitleFormat($TF_name);
+				Slim::Music::TitleFormatter::addFormat($TF_name, sub {
+					return getTitleFormat(@_,$thisconfigID);
+				});
+			}
+		}
+	}
+	main::DEBUGLOG && $log->is_debug && $log->debug('Finished initializing trackinfohandler & titleformats.');
+}
+
+sub getTrackInfo {
+	my ($client, $url, $track, $remoteMeta, $tags, $filter, $thisconfigID) = @_;
+	main::DEBUGLOG && $log->is_debug && $log->debug('thisconfigID = '.$thisconfigID);
+
+	if (Slim::Music::Import->stillScanning) {
+		$log->warn('Warning: not available until library scan is completed');
+		return;
+	}
+
+	# check if remote track is part of online library
+	if ((Slim::Music::Info::isRemoteURL($url) == 1)) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('ignoring remote track without comments tag: '.$url);
+		return;
+	}
+
+	# check for dead/moved local tracks
+	if ((Slim::Music::Info::isRemoteURL($url) != 1) && (!defined($track->filesize))) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('track dead or moved??? Track URL: '.$url);
+		return;
+	}
+
+	my $configmatrix = $prefs->get('commenttaginfoconfigmatrix');
+	my $thisconfig = $configmatrix->{$thisconfigID};
+		if (($thisconfig->{'searchstring'}) && ($thisconfig->{'contextmenucategoryname'}) && ($thisconfig->{'contextmenucategorycontent'})) {
+			my $itemname = $thisconfig->{'contextmenucategoryname'};
+			my $itemvalue = $thisconfig->{'contextmenucategorycontent'};
+			my $thiscomment = $track->comment;
+
+			if (defined $thiscomment && $thiscomment ne '') {
+				if (index(lc($thiscomment), lc($thisconfig->{'searchstring'})) != -1) {
+
+					main::DEBUGLOG && $log->is_debug && $log->debug('text = '.$itemname.': '.$itemvalue);
+					return {
+						type => 'text',
+						name => $itemname.': '.$itemvalue,
+						itemvalue => $itemvalue,
+						itemid => $track->id,
+					};
+				}
+			}
+		}
+	return;
+}
+
+sub getTitleFormat {
+	my $track = shift;
+	my $thisconfigID = shift;
+	my $TF_string = HTML::Entities::decode_entities('&#xa0;'); # "NO-BREAK SPACE" - HTML Entity (hex): &#xa0;
+
+	if (Slim::Music::Import->stillScanning) {
+		$log->warn('Warning: not available until library scan is completed');
+		return $TF_string;
+	}
+	main::DEBUGLOG && $log->is_debug && $log->debug('thisconfigID = '.$thisconfigID);
+
+	if ($track && !blessed($track)) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('track is not blessed');
+		$track = Slim::Schema->find('Track', $track->{id});
+		if (!blessed($track)) {
+			main::DEBUGLOG && $log->is_debug && $log->debug('No track object found');
+			return $TF_string;
+		}
+	}
+	my $trackURL = $track->url;
+
+	# check if remote track is part of online library
+	if ((Slim::Music::Info::isRemoteURL($trackURL) == 1)) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('ignoring remote track without comments tag: '.$trackURL);
+		return $TF_string;
+	}
+
+	# check for dead/moved local tracks
+	if ((Slim::Music::Info::isRemoteURL($trackURL) != 1) && (!defined($track->filesize))) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('track dead or moved??? Track URL: '.$trackURL);
+		return $TF_string;
+	}
+
+	my $configmatrix = $prefs->get('commenttaginfoconfigmatrix');
+	my $thisconfig = $configmatrix->{$thisconfigID};
+	my $titleformatname = $thisconfig->{'titleformatname'};
+	my $titleformatdisplaystring = $thisconfig->{'titleformatdisplaystring'};
+	if (($titleformatname ne '') && ($titleformatdisplaystring ne '')) {
+		my $thiscomment = $track->comment;
+		if (defined $thiscomment && $thiscomment ne '') {
+			if (index(lc($thiscomment), lc($thisconfig->{'searchstring'})) != -1) {
+				$TF_string = $titleformatdisplaystring;
+			}
+		}
+	}
+	main::DEBUGLOG && $log->is_debug && $log->debug('returned title format display string for track = '.Data::Dump::dump($TF_string));
+	return $TF_string;
+}
+
+sub addTitleFormat {
+	my $titleformat = shift;
+	my $titleFormats = $serverPrefs->get('titleFormat');
+	foreach my $format (@{$titleFormats}) {
+		if($titleformat eq $format) {
+			return;
+		}
+	}
+	push @{$titleFormats},$titleformat;
+	$serverPrefs->set('titleFormat',$titleFormats);
+}
+
+sub trim_leadtail {
+	my ($str) = @_;
+	$str =~ s{^\s+}{};
+	$str =~ s{\s+$}{};
+	return $str;
+}
+
+sub trim_all {
+	my ($str) = @_;
+	$str =~ s/ //g;
+	return $str;
+}
+
+
+# misc
 sub setStartVolumeLevel {
 	my $request = shift;
 	my $client = $request->client();
