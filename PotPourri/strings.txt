@@ -309,4 +309,4 @@ PLUGIN_POTPOURRI_SETTINGS_ABOUT
 	EN	How to use
 
 PLUGIN_POTPOURRI_SETTINGS_ABOUT_TEXT
-	EN	Please see the <a href="https://github.com/AF-1/lms-potpourri"><b>GitHub page</b></a> for more information.
+	EN	Please see the <a href="https://github.com/AF-1/lms-potpourri/wiki/Comment-tag-info"><b>GitHub wiki</b></a> for more information.
