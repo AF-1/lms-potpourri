@@ -41,8 +41,9 @@ A collection of various small [features](https://github.com/AF-1/lms-potpourri#f
 
 ### Using the repository URL
 
-- Add the repository URL below at the bottom of *LMS* > *Settings* > *Plugins* and click *Apply*:
-[https://raw.githubusercontent.com/AF-1/lms-potpourri/main/public.xml](https://raw.githubusercontent.com/AF-1/lms-potpourri/main/public.xml)
+> **⚠ IMPORTANT**: the repo URL has changed!<br>
+- Add the repository URL below at the bottom of *LMS* > *Settings* > *Plugins* and click *Apply*:<br>
+[https://raw.githubusercontent.com/AF-1/sobras/main/repos/lmsghonly/public.xml](https://raw.githubusercontent.com/AF-1/sobras/main/repos/lmsghonly/public.xml)
 
 - Install the new version.
 <br>
