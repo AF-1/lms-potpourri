@@ -3,7 +3,7 @@
 	<id>af75ac4f-d757-7cdb-b390-dbea4791f646</id>
 	<name>PLUGIN_POTPOURRI</name>
 	<module>Plugins::PotPourri::Plugin</module>
-	<version>0.4.3</version>
+	<version>0.5.0</version>
 	<description>PLUGIN_POTPOURRI_DESC</description>
 	<creator>AF</creator>
 	<optionsURL>plugins/PotPourri/settings/basic.html</optionsURL>
@@ -13,7 +13,7 @@
 	<defaultState>enabled</defaultState>
 	<targetApplication>
 		<id>Logitech Media Server</id>
-		<minVersion>8.3</minVersion>
+		<minVersion>8.4</minVersion>
 		<maxVersion>*</maxVersion>
 	</targetApplication>
 </extension>
