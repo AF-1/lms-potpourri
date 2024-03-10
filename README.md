@@ -7,7 +7,7 @@ A collection of various small [features](https://github.com/AF-1/lms-potpourri#f
 <br><br>
 ## Requirements
 
-- LMS version >= 8.**3**
+- LMS version >= 8.**4**
 - LMS database = **SQLite**
 
 <br>
@@ -25,7 +25,7 @@ A collection of various small [features](https://github.com/AF-1/lms-potpourri#f
 
 - **Export static playlists** to playlist files with custom **file paths and file extensions**[^2].
 
-- **Adjust album *release types*** based on keywords in the album title (e.g. [Single]). Requires LMS version >= 8.**4**.
+- **Adjust album *release types*** based on keywords in the album title (e.g. [Single]).
 
 - Use **(key)words** in your music files' <b><u>comment</u> tags</b> to add **extra information** to the **song details page** / context menu information or to define and display **custom title formats**[^3].
 <br><br><br>
