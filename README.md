@@ -1,8 +1,6 @@
 PotPourri
 ====
 
-A plugin for [Logitech Media Server](https://github.com/Logitech/slimserver)<br>
-
 A collection of various small [features](https://github.com/AF-1/lms-potpourri#features).
 <br><br>
 ## Requirements
