@@ -712,8 +712,8 @@ sub initMatrix {
 				main::DEBUGLOG && $log->is_debug && $log->debug('titleformat name = '.$TF_name);
 				addTitleFormat($TF_name);
 				Slim::Music::TitleFormatter::addFormat($TF_name, sub {
-					return getTitleFormat(@_,$thisconfigID);
-				});
+ 					return getTitleFormat(@_, $thisconfigID);
+				}, 1);
 			}
 		}
 	}
@@ -767,13 +767,13 @@ sub getTrackInfo {
 sub getTitleFormat {
 	my $track = shift;
 	my $thisconfigID = shift;
-	my $TF_string = HTML::Entities::decode_entities('&#xa0;'); # "NO-BREAK SPACE" - HTML Entity (hex): &#xa0;
+	my $TF_string = '';
 
 	if (Slim::Music::Import->stillScanning) {
 		$log->warn('Warning: not available until library scan is completed');
 		return $TF_string;
 	}
-	main::DEBUGLOG && $log->is_debug && $log->debug('thisconfigID = '.$thisconfigID);
+	main::DEBUGLOG && $log->is_debug && $log->debug('getting value for title format ID = '.$thisconfigID);
 
 	if ($track && !blessed($track)) {
 		main::DEBUGLOG && $log->is_debug && $log->debug('track is not blessed');
