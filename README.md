@@ -29,7 +29,7 @@ A collection of various small [features](https://github.com/AF-1/lms-potpourri#f
 <br><br><br>
 
 
-## Screenshots (of some features)
+## Screenshots[^4] (of some features)
 
 <img src="screenshots/ppt.gif" width="100%">
 <br><br><br>
@@ -58,3 +58,4 @@ If you want to report a new issue, please fill out this [**issue report template
 [^1]:based on parts of E. Koldinger's [**Reset Volume**](https://github.com/koldinger/ResetVolume)
 [^2]:Files will be exported to the **LMS playlists folder** or alternatively to the **LMS preferences folder**.
 [^3]:<b>Custom title formats</b> can be used to display a <i>short</i> string or a character on the <i>Now Playing screensaver</i> and the <i>Music Information plugin screensaver</i> or to append a string to the track title.
+[^4]: The screenshots might not correspond to the current UI in every detail.
