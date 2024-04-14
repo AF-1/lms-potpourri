@@ -712,7 +712,7 @@ sub initMatrix {
 				main::DEBUGLOG && $log->is_debug && $log->debug('titleformat name = '.$TF_name);
 				addTitleFormat($TF_name);
 				Slim::Music::TitleFormatter::addFormat($TF_name, sub {
- 					return getTitleFormat(@_, $thisconfigID);
+				return getTitleFormat(@_, $thisconfigID);
 				}, 1);
 			}
 		}
