@@ -1,5 +1,5 @@
 [% thisname = 'PLUGIN_POTPOURRI_PLSORTORDER_OPTIONS' | string %]
-[% pagetitle = 'PLUGIN_POTPOURRI_WEB_PLINFO' | string; pagetitle = pagetitle _ " (" _ playlistname _ ") > " _ thisname %]
+[% pagetitle = 'PLUGIN_POTPOURRI_WEB_PLINFO' | string; pagetitle = pagetitle _ " (" _ playlistname _ ") ";IF systemSkin == 'Classic';pagetitle = pagetitle _ "/ ";ELSE;pagetitle = pagetitle _ "> ";END;pagetitle = pagetitle _ thisname %]
 [% pwd_list = [ pagetitle ] %]
 [% PROCESS pageheader.html %]
 <style>.wrapper{padding:5px;}.titlebold{font-weight:bold};.padleft{padding-left:5px;}.pptbutton{padding:2px;}.btncenter{text-align:center;}.filler{height:15px;}.warning{color:red;}</style>
