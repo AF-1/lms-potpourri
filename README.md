@@ -42,7 +42,7 @@ A collection of various small [features](https://github.com/AF-1/lms-potpourri#f
 - Add the repository URL below at the bottom of *LMS* > *Settings* > *Plugins* and click *Apply*:<br>
 [https://raw.githubusercontent.com/AF-1/sobras/main/repos/lmsghonly/public.xml](https://raw.githubusercontent.com/AF-1/sobras/main/repos/lmsghonly/public.xml)
 
-- Install the plugin.
+- Install the plugin from the added repository at the bottom of the page.
 <br>
 
 ### Manual Install
@@ -58,4 +58,4 @@ If you want to report a new issue, please fill out this [**issue report template
 [^1]:based on parts of E. Koldinger's [**Reset Volume**](https://github.com/koldinger/ResetVolume)
 [^2]:Files will be exported to the **LMS playlists folder** or alternatively to the **LMS preferences folder**.
 [^3]:<b>Custom title formats</b> can be used to display a <i>short</i> string or a character on the <i>Now Playing screensaver</i> and the <i>Music Information plugin screensaver</i> or to append a string to the track title.
-[^4]: The screenshots might not correspond to the current UI in every detail.
+[^4]: The screenshots might not correspond to the UI of the latest release in every detail.
