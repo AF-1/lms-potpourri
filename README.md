@@ -1,7 +1,7 @@
 PotPourri
 ====
 
-A collection of various small [features](https://github.com/AF-1/lms-potpourri#features).
+A collection of various small [features](#features).
 <br><br>
 ## Requirements
 
