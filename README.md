@@ -52,7 +52,8 @@ Please read the instructions on how to [install a plugin manually](https://githu
 
 ## Reporting a new issue
 
-If you want to report a new issue, please fill out this [**issue report template**](https://github.com/AF-1/lms-potpourri/issues/new?template=bug_report.md&title=%5BISSUE%5D+).
+If you want to report a new issue, please fill out this [**issue report template**](https://github.com/AF-1/lms-potpourri/issues/new?template=bug_report.md&title=%5BISSUE%5D+).<br><br>
+If you use this plugin and like it, perhaps you could give it a :star: so that other users can discover it (in their News Feed). Thank you.
 <br><br><br><br>
 
 [^1]:based on parts of E. Koldinger's [**Reset Volume**](https://github.com/koldinger/ResetVolume)
