@@ -2,7 +2,7 @@ PLUGIN_POTPOURRI
 	EN	PotPourri
 
 PLUGIN_POTPOURRI_DESC
-	EN	A collection of various small features. More information and screenshots on the GitHub page.
+	EN	A collection of various small features. Feature list and more information on the GitHub page.
 
 PLUGIN_POTPOURRI_LOG_DESC
 	EN	Log of plugin PotPourri
