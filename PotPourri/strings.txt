@@ -24,7 +24,7 @@ PLUGIN_POTPOURRI_SETTINGS_FAQ_LINK_TEXT
 	EN	Click here for more information.
 
 PLUGIN_POTPOURRI_SETTINGS_FAQ_LINK
-	EN	https://github.com/AF-1/lms-potpourri#potpourri
+	EN	https://github.com/AF-1/#-potpourri
 
 
 PLUGIN_POTPOURRI_SETTINGS_TOPLEVELPLAYLIST
