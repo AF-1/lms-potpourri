@@ -75,6 +75,12 @@ sub initPlugin {
 			return playlistSortContextMenu(@_);
 		},
 	));
+	if ($prefs->get('displaytrackid')) {
+		Slim::Menu::TrackInfo->registerInfoProvider('zppt_infotrackid' => (
+			parent => 'moreinfo', isa => 'bottom',
+			func => sub { return getTrackIdForContextMenu(@_); }
+		));
+	}
 
 	Slim::Web::Pages->addPageFunction('playlistsortorderselect', \&changePLtrackOrder_web);
 	Slim::Web::Pages->addPageFunction('playlistsortorderoptions.html', \&changePLtrackOrder_web);
@@ -120,7 +126,16 @@ sub initPrefs {
 			initMatrix();
 			Slim::Music::Info::clearFormatDisplayCache();
 		}, 'commenttaginfoconfigmatrix');
-
+	$prefs->setChange(sub {
+				main::DEBUGLOG && $log->is_debug && $log->debug('Change in comment tag info config matrix detected. Reinitializing trackinfohandler & titleformats.');
+				Slim::Menu::TrackInfo->deregisterInfoProvider('zppt_infotrackid');
+				if ($prefs->get('displaytrackid')) {
+					Slim::Menu::TrackInfo->registerInfoProvider('zppt_infotrackid' => (
+						parent => 'moreinfo', isa => 'bottom',
+						func => sub { return getTrackIdForContextMenu(@_); }
+					));
+				}
+		}, 'displaytrackid');
 	my $i = 1;
 	%sortOptionLabels = map { $i++ => $_ } ('Random order', 'Inverted order', 'Artist > album > disc no. > track no.', 'Album > artist > disc no. > track no.', 'Album > disc no. > track no.', 'Genre', 'Year', 'Track number', 'Track title', 'Date added', 'Play count', 'Play count (APC)', 'Date last played', 'Date last played (APC)', 'Rating', 'Dynamic played/skipped value (APC)', 'Track length', 'BPM', 'Bitrate', 'Album artist', 'Composer', 'Conductor', 'Band');
 }
@@ -954,6 +969,20 @@ sub APCquery {
 	$sth->finish();
 	main::DEBUGLOG && $log->is_debug && $log->debug('Current APC '.$queryType.' for trackurlmd5 ('.$trackURLmd5.') = '.$returnVal);
 	return $returnVal;
+}
+
+sub getTrackIdForContextMenu {
+	my ($client, $url, $track) = @_;
+	if ($track->id) {
+		return {
+			type => 'text',
+			name => 'Track ID: '.$track->id,
+			itemvalue => $track->id,
+			itemid => $track->id,
+		};
+	} else {
+		return;
+	}
 }
 
 sub displayMessage {

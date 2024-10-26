@@ -35,5 +35,13 @@
 		<option [% IF prefs.appitem %]selected [% END %]value="1">[% 'YES' | getstring %]</option>
 	</select>
 [% END %]
+<br>
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_DISPLAYTRACKID" desc="PLUGIN_POTPOURRI_SETTINGS_DISPLAYTRACKID_DESC" %]
+	<select class="stdedit" name="pref_displaytrackid" id="displaytrackid">
+		<option [% IF NOT prefs.displaytrackid %]selected [% END %]value="0">[% 'NO' | getstring %]</option>
+		<option [% IF prefs.displaytrackid %]selected [% END %]value="1">[% 'YES' | getstring %]</option>
+	</select>
+[% END %]
 
 [% PROCESS settings/footer.html %]
