@@ -179,7 +179,7 @@ sub playlistSortContextMenu {
 	} else {
 		return {
 			type => 'redirect',
-			name => $client->string('PLUGIN_POTPOURRI_PLSORTORDER_OPTIONS'),
+			name => string('PLUGIN_POTPOURRI_PLSORTORDER_OPTIONS'),
 			favorites => 0,
 			web => {
 				url => 'plugins/PotPourri/playlistsortorderselect?playlistid='.$playlistID.'&playlistname='.$playlistName
