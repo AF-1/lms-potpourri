@@ -29,6 +29,10 @@ A collection of various small [features](#features).
 - **Adjust album *release types*** based on keywords in the album title (e.g. [Single]).
 
 - Use **(key)words** in your music files' <b><u>comment</u> tags</b> to add **extra information** to the **song details page** / context menu information or to define and display **custom title formats**[^3].
+
+- Purge dead tracks from the *tracks_persistent* table.
+
+- …
 <br><br><br>
 
 
