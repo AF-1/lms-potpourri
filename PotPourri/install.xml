@@ -3,7 +3,7 @@
 	<id>af75ac4f-d757-7cdb-b390-dbea4791f646</id>
 	<name>PLUGIN_POTPOURRI</name>
 	<module>Plugins::PotPourri::Plugin</module>
-	<version>1.0.3</version>
+	<version>1.0.4</version>
 	<description>PLUGIN_POTPOURRI_DESC</description>
 	<creator>AF</creator>
 	<optionsURL>plugins/PotPourri/settings/basic.html</optionsURL>

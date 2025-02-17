@@ -955,6 +955,19 @@ sub initPLtoplevellink {
 	main::DEBUGLOG && $log->is_debug && $log->debug('Finished initializing playlist toplevel link.');
 }
 
+sub purgeDeadTracksPersistent {
+	my $dbh = Slim::Schema->dbh;
+	main::DEBUGLOG && $log->is_debug && $log->debug('Removing remove dead tracks from the LMS tracks_persistent table whose file URL has no match in the current LMS tracks table.');
+
+	my $sqlstatement = "delete from tracks_persistent where urlmd5 not in (select urlmd5 from tracks where tracks.urlmd5 = tracks_persistent.urlmd5)";
+	eval {$dbh->do($sqlstatement)};
+	if ($@) {
+		$log->error("Database error: $DBI::errstr\n");
+		eval { rollback($dbh); };
+	}
+	main::DEBUGLOG && $log->is_debug && $log->debug('Finished removing dead tracks from tracks_persistent.');
+}
+
 
 sub APCquery {
 	my ($trackURLmd5, $queryType) = @_;

@@ -192,7 +192,19 @@ PLUGIN_POTPOURRI_SETTINGS_DISPLAYTRACKID
 	EN	Display LMS database track ID
 
 PLUGIN_POTPOURRI_SETTINGS_DISPLAYTRACKID_DESC
-	EN	Display the LMS database ID of a track at the bottom of its context menu.<br>Skins that use the <i>More Info</i> submenu will display the track ID  at the bottom of that menu.
+	EN	Display the LMS database ID of a track at the bottom of its context menu.<br>Skins that use the <i>More Info</i> submenu will display the track ID at the bottom of that menu.
+
+PLUGIN_POTPOURRI_SETTINGS_PURGEDEADTRACKS_PERSISTENT
+	EN	Remove dead tracks from<br>LMS tracks_persistent table
+
+PLUGIN_POTPOURRI_SETTINGS_PURGEDEADTRACKS_PERSISTENT_DESC
+	EN	This will remove all (dead) tracks from the LMS <b>tracks_persistent</b> table whose file URL has no match in the current LMS <b>tracks</b> table.<br><br><b>Only use this if you're know what you're doing and if you have a backup of the LMS <i>persist.db</i> file.</b>
+
+PLUGIN_POTPOURRI_SETTINGS_PURGEDEADTRACKS_PERSISTENT_BUTTON
+	EN	Remove dead tracks now
+
+PLUGIN_POTPOURRI_SETTINGS_PURGEDEADTRACKS_PERSISTENT_INPROGRESS
+	EN	removing dead tracks...
 
 
 PLUGIN_POTPOURRI_SETTINGS_EXPORT_PLAYLISTS_TO_FILES
