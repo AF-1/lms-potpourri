@@ -54,7 +54,7 @@ If you want to test a new patch that hasn't made it into a release version yet, 
 
 ## FAQ
 <details><summary>»<b>I've set the player volume to be locked or capped (max. volume). When I change the volume, it is reset correctly but sometimes the player UI still displays the wrong  value.</b>«</summary><br><p>
-That can happen occasionally if you click or press buttons a lot very fast. Or if the player volume is not reset using the UI, e.g. if you enable fixed or max. volume in the preferences settings and the current player volume needs to be reset right away to comply with the new restrictions.<br>Unfortunately, I have no way of guaranteeing that the volume level is <i>always</i> correctly <i>displayed</i>.<br>The important thing is that the <i>actual</i> volume level on the player itself is correct.</p></details><br>
+That can happen occasionally if you click or press buttons a lot very fast. Or if the player volume is not reset using the UI, e.g. if you enable fixed or max. volume in the preferences settings and the current player volume needs to be reset right away to comply with the new restrictions.<br>Unfortunately, I cannot guarantee that the volume level is <i>always</i> displayed(!) correctly..<br>The important thing is that the <i>actual</i> volume level on the player itself is correct.</p></details><br>
 <br><br><br>
 
 
