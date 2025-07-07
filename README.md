@@ -70,7 +70,7 @@ If you find this project useful, giving it a <img src="screenshots/githubstar.pn
 <br><br><br><br>
 
 [^1]:based on parts of E. Koldinger's [**Reset Volume**](https://github.com/koldinger/ResetVolume)
-[^2]:inspired by Peter Watkins' plugin [**Volume Lock**](https://tuxreborn.netlify.app/slim/VolumeLock.html)
+[^2]:inspired by Peter Watkins' [**Volume Lock**](https://tuxreborn.netlify.app/slim/VolumeLock.html)
 [^3]:Files will be exported to the **LMS playlists folder** or alternatively to the **LMS preferences folder**.
 [^4]:<b>Custom title formats</b> can be used to display a <i>short</i> string or a character on the <i>Now Playing screensaver</i> and the <i>Music Information plugin screensaver</i> or to append a string to the track title.
 [^5]: The screenshots might not correspond to the UI of the latest release in every detail.
