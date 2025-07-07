@@ -20,15 +20,17 @@ A collection of various small [features](#features).
 ## Features:
 - **Change the track order of *saved static* playlists** (context menu) or **client playlists** (*App menu icon*). Multiple sort options available.
 
-- Set a **power-on volume level for players** that's enforced when players are switched on.[^1] The (sub)menu is listed on the *LMS Settings > Player* page.
+- Set a **power-on volume level for players** that's enforced when players are switched on.[^1] The (sub)menu **Player Volume Settings** is listed on the *LMS Settings > Player* page.
+
+- ***Lock* the volume level** for a player or **set a *max.* player volume**.[^2] The (sub)menu **Player Volume Settings** is listed on the *LMS Settings > Player* page.
 
 - Set a **time to turn off *all* players** each day. No more worries about idle players that you forgot to switch off.
 
-- **Export static playlists** to playlist files with custom **file paths and file extensions**[^2].
+- **Export static playlists** to playlist files with custom **file paths and file extensions**[^3].
 
 - **Adjust album *release types*** based on keywords in the album title (e.g. [Single]).
 
-- Use **(key)words** in your music files' <b><u>comment</u> tags</b> to add **extra information** to the **song details page** / context menu information or to define and display **custom title formats**[^3].
+- Use **(key)words** in your music files' <b><u>comment</u> tags</b> to add **extra information** to the **song details page** / context menu information or to define and display **custom title formats**[^4].
 
 - Purge dead tracks from the *tracks_persistent* table.
 
@@ -36,7 +38,7 @@ A collection of various small [features](#features).
 <br><br><br>
 
 
-## Screenshots[^4] (of some features)
+## Screenshots[^5] (of some features)
 
 <img src="screenshots/ppt.gif" width="100%">
 <br><br><br>
@@ -47,6 +49,12 @@ A collection of various small [features](#features).
 **PotPourri** is available from the LMS plugin library: **LMS > Settings > Manage Plugins**.<br>
 
 If you want to test a new patch that hasn't made it into a release version yet, you'll have to [install the plugin manually](https://github.com/AF-1/sobras/wiki/Manual-installation-of-LMS-plugins).
+<br><br><br>
+
+
+## FAQ
+<details><summary>»<b>I've set the player volume to be locked or capped (max. volume). When I change the volume, it is reset correctly but sometimes the player UI still displays the wrong  value.</b>«</summary><br><p>
+That can happen occasionally if you click or press buttons a lot very fast. Or if the player volume is not reset using the UI, e.g. if you enable fixed or max. volume in the preferences settings and the current player volume needs to be reset right away to comply with the new restrictions.<br>I have no way of setting the displayed volume level. The important thing is that the actual volume level on the player itself should be correct.</p></details><br>
 <br><br><br>
 
 
@@ -62,6 +70,7 @@ If you find this project useful, giving it a <img src="screenshots/githubstar.pn
 <br><br><br><br>
 
 [^1]:based on parts of E. Koldinger's [**Reset Volume**](https://github.com/koldinger/ResetVolume)
-[^2]:Files will be exported to the **LMS playlists folder** or alternatively to the **LMS preferences folder**.
-[^3]:<b>Custom title formats</b> can be used to display a <i>short</i> string or a character on the <i>Now Playing screensaver</i> and the <i>Music Information plugin screensaver</i> or to append a string to the track title.
-[^4]: The screenshots might not correspond to the UI of the latest release in every detail.
+[^2]:inspired by Peter Watkins' plugin [**Volume Lock**](https://tuxreborn.netlify.app/slim/VolumeLock.html)
+[^3]:Files will be exported to the **LMS playlists folder** or alternatively to the **LMS preferences folder**.
+[^4]:<b>Custom title formats</b> can be used to display a <i>short</i> string or a character on the <i>Now Playing screensaver</i> and the <i>Music Information plugin screensaver</i> or to append a string to the track title.
+[^5]: The screenshots might not correspond to the UI of the latest release in every detail.
