@@ -46,7 +46,7 @@ my $log = Slim::Utils::Log->addLogCategory({
 my $serverPrefs = preferences('server');
 my $prefs = preferences('plugin.potpourri');
 my %sortOptionLabels;
-my ($apc_enabled, $material_enabled);
+my ($apc_enabled, $material_enabled, $originalMixerVolumeCommand);
 
 use Plugins::PotPourri::Common ':all';
 use Plugins::PotPourri::Importer;
@@ -65,7 +65,7 @@ sub initPlugin {
 		Plugins::PotPourri::Settings::Basic->new($class);
 		Plugins::PotPourri::Settings::Export->new($class);
 		Plugins::PotPourri::Settings::CommentTagInfo->new($class);
-		Plugins::PotPourri::PlayerSettings->new();
+		Plugins::PotPourri::PlayerSettings->new($class);
 		Plugins::PotPourri::Settings::ReleaseTypes->new($class);
 	}
 
@@ -87,6 +87,7 @@ sub initPlugin {
 
 	Slim::Control::Request::addDispatch(['potpourri', 'changeplaylisttrackorderoptions', '_playlistid', '_playlistname'], [1, 1, 1, \&changePLtrackOrder_jive_choice]);
 	Slim::Control::Request::addDispatch(['potpourri', 'changeplaylisttrackorder', '_playlistid', '_sortoption', '_playlistname'], [1, 0, 1, \&changePLtrackOrder_jive]);
+	$originalMixerVolumeCommand = Slim::Control::Request::addDispatch(['mixer', 'volume', '_newvalue'],[1, 0, 1, \&_limitVolumeControl]);
 
 	Slim::Control::Request::subscribe(\&setStartVolumeLevel,[['power']]);
 	Slim::Control::Request::subscribe(\&initPLtoplevellink,[['rescan'],['done']]);
@@ -109,11 +110,13 @@ sub initPrefs {
 		toplevelplaylistname => 'none',
 		powerofftime => '01:30',
 		appitem => 1,
+		limitvolumecontrollevel => 50,
 	});
 
 	$prefs->set('status_exportingtoplaylistfiles', '0');
 
 	$prefs->setValidate({'validator' => 'intlimit', 'low' => 0, 'high' => 100}, 'presetVolume');
+	$prefs->setValidate({'validator' => 'intlimit', 'low' => 0, 'high' => 100}, 'limitvolumecontrollevel');
 	$prefs->setValidate({'validator' => \&isTimeOrEmpty}, 'powerofftime');
 
 	$prefs->setChange(sub {
@@ -136,6 +139,12 @@ sub initPrefs {
 				));
 			}
 		}, 'displaytrackid');
+	$prefs->setChange(sub {
+		my ($name, $value, $client) = @_;
+		_prefsChangeCheck($client);
+	}, 'limitvolumecontrol', 'limitvolumecontrollevel');
+
+
 	my $i = 1;
 	%sortOptionLabels = map { $i++ => $_ } ('Random order', 'Inverted order', 'Artist > album > disc no. > track no.', 'Album > artist > disc no. > track no.', 'Album > disc no. > track no.', 'Genre', 'Year', 'Track number', 'Track title', 'Date added', 'Play count', 'Play count (APC)', 'Date last played', 'Date last played (APC)', 'Rating', 'Dynamic played/skipped value (APC)', 'Track length', 'BPM', 'Bitrate', 'Album artist', 'Composer', 'Conductor', 'Band');
 }
@@ -854,7 +863,7 @@ sub trim_all {
 }
 
 
-# misc
+# player volume level: power on, fixed / capped
 sub setStartVolumeLevel {
 	my $request = shift;
 	my $client = $request->client();
@@ -876,13 +885,123 @@ sub setStartVolumeLevel {
 			return if ($curVolume <= $volume);
 		}
 		main::DEBUGLOG && $log->is_debug && $log->debug("Setting volume for client '".$client->name()."' to ".($enabledSetStartVolumeLevel == 2 ? "last" : "preset")." $volume");
-		$client->execute(["mixer", "volume", $volume]);
+		$client->volume($volume);
 	} else {
 		$prefs->client($client)->set('lastVolume', $curVolume);
 		main::DEBUGLOG && $log->is_debug && $log->debug("Saving last volume $curVolume for client '".$client->name()."'");
 	}
 }
 
+sub _limitVolumeControl {
+	my @args = @_;
+	my $request = $args[0];
+	my $client = $request->client();
+	if (!$client) {
+		$log->warn('NO client!!!');
+		return;
+	}
+
+	my $clientPrefs = $prefs->client($client);
+	my $limitVolumeControl = $clientPrefs->get('limitvolumecontrol');
+	main::DEBUGLOG && $log->is_debug && $log->debug('------ '.($client->name ? 'Player "'.$client->name.'": ': '').'request for volume change detected ------');
+	main::DEBUGLOG && $log->is_debug && $log->debug('limitVolumeControl mode = '.Data::Dump::dump($limitVolumeControl).' (0 = disabled, 1 = fixed, 2 = capped)');
+
+	my $newValue = $request->getParam('_newvalue');
+	main::DEBUGLOG && $log->is_debug && $log->debug('raw newValue from request = '.Data::Dump::dump($newValue));
+
+	# old players report new value as incremental value change
+	if ($newValue =~ /^[\+\-]/) {
+		my $oldValue = $client->volume;
+		main::DEBUGLOG && $log->is_debug && $log->debug('old volume value = '.Data::Dump::dump($oldValue));
+		$newValue = $oldValue + $newValue;
+	}
+	main::DEBUGLOG && $log->is_debug && $log->debug('requested new volume = '.Data::Dump::dump($newValue));
+
+	if ($limitVolumeControl) {
+		my $limitVolumeControlLevel = $clientPrefs->get('limitvolumecontrollevel');
+		main::DEBUGLOG && $log->is_debug && $log->debug(($limitVolumeControl == 1 ? 'fixed volume' : 'max. volume').' set in player prefs = '.Data::Dump::dump($limitVolumeControlLevel));
+
+		# 1 = locked/fixed, 2 = capped at max level
+		if ((($limitVolumeControl == 1) && ($newValue != $limitVolumeControlLevel)) ||
+		(($limitVolumeControl == 2) && ($newValue > $limitVolumeControlLevel)))
+		{
+			my $deviceMsg = string('PLUGIN_POTPOURRI_PLAYER_VOLUMECONTROL_FEEDBACK').' '.(($limitVolumeControl == 1) ? string('PLUGIN_POTPOURRI_PLAYER_VOLUMECONTROL_FEEDBACK_LOCKED') : string('PLUGIN_POTPOURRI_PLAYER_VOLUMECONTROL_FEEDBACK_CAPPED'))." $limitVolumeControlLevel";
+			my $logMsg = ($client->name ? 'Player "'.$client->name.'": ': '')."requested player volume $newValue ".($limitVolumeControl == 1 ? 'is different from fixed' : 'greater than max.'). " player volume $limitVolumeControlLevel. Resetting player volume to $limitVolumeControlLevel.";
+			Slim::Utils::Timers::killTimers($client, \&_resetVolume);
+			Slim::Utils::Timers::setTimer($client,Time::HiRes::time() + 0.05,\&_resetVolume, $limitVolumeControlLevel, $deviceMsg, $logMsg);
+
+			$request->setStatusDone;
+			return;
+		} else {
+			my $logMsg = ($client->name ? 'Player "'.$client->name.'": ': '')."NO action required. Requested player volume $newValue ".($limitVolumeControl == 1 ? '= fixed' : '<= max.'). " player volume $limitVolumeControlLevel.";
+			Slim::Utils::Timers::killTimers($client, \&_volFeedback);
+			Slim::Utils::Timers::setTimer($client, Time::HiRes::time() + 1,\&_volFeedback, undef, undef, $logMsg);
+		}
+	} else {
+		Slim::Utils::Timers::killTimers($client, \&_volFeedback);
+		Slim::Utils::Timers::setTimer($client, Time::HiRes::time() + 1,\&_volFeedback, undef, undef, ($client->name ? 'Player "'.$client->name.'": ': '').'NO action required. Player volume not fixed or capped.');
+	}
+	# else call the original function
+	main::DEBUGLOG && $log->is_debug && $log->debug('Calling original mixer function');
+	return &$originalMixerVolumeCommand(@args);
+}
+
+sub _prefsChangeCheck {
+	my $client = shift;
+	return unless $client;
+
+	my $clientPrefs = $prefs->client($client);
+	my $limitVolumeControl = $clientPrefs->get('limitvolumecontrol');
+	main::DEBUGLOG && $log->is_debug && $log->debug('limitVolumeControl mode: '.Data::Dump::dump($limitVolumeControl));
+	if ($limitVolumeControl) {
+		main::INFOLOG && $log->is_info && $log->info("set pref to limitVolumeControl mode: ".($limitVolumeControl == 1 ? 'fixed volume' : 'max. volume / capped'));
+		my $limitVolumeControlLevel = $clientPrefs->get('limitvolumecontrollevel');
+		main::DEBUGLOG && $log->is_debug && $log->debug('limitVolumeControlLevel = '.Data::Dump::dump($limitVolumeControlLevel));
+		my $currentVolume = $client->volume();
+		main::DEBUGLOG && $log->is_debug && $log->debug('currentVolume of client = '.Data::Dump::dump($currentVolume));
+
+		if ((($limitVolumeControl == 1) && ($currentVolume != $limitVolumeControlLevel)) ||
+		(($limitVolumeControl == 2) && ($currentVolume > $limitVolumeControlLevel)))
+		{
+			main::INFOLOG && $log->is_info && $log->info("post pref change: resetting player volume to $limitVolumeControlLevel because the current player volume $currentVolume ".($limitVolumeControl == 1 ? 'was different (fixed mode)' : 'exceeded the max. volume'));
+			Slim::Utils::Timers::killTimers($client, \&_resetVolume);
+			Slim::Utils::Timers::setTimer($client,Time::HiRes::time() + 0.05,\&_resetVolume, $limitVolumeControlLevel);
+		}
+	} else {
+		main::INFOLOG && $log->is_info && $log->info('set pref to limitVolumeControl mode: disabled / no restrictions');
+	}
+}
+
+sub _resetVolume {
+	my ($client, $limitVolumeControlLevel, $deviceMsg, $logMsg) = @_;
+	main::DEBUGLOG && $log->is_debug && $log->debug('Resetting volume to '.Data::Dump::dump($limitVolumeControlLevel));
+	$client->volume($limitVolumeControlLevel);
+	Slim::Utils::Timers::killTimers($client, \&_volFeedback);
+	Slim::Utils::Timers::setTimer($client,Time::HiRes::time() + 1,\&_volFeedback, $limitVolumeControlLevel, $deviceMsg, $logMsg);
+}
+
+sub _volFeedback {
+	my ($client, $limitVolumeControlLevel, $deviceMsg, $logMsg) = @_;
+
+	if ($deviceMsg) {
+		if (Slim::Buttons::Common::mode($client) !~ /^SCREENSAVER./) {
+			$client->showBriefly({'line' => [string('PLUGIN_POTPOURRI'), $deviceMsg]}, 4);
+		}
+	}
+	# set it again, just to make sure
+	$client->volume($limitVolumeControlLevel) if $limitVolumeControlLevel;
+
+	Slim::Utils::Timers::setTimer(undef, Time::HiRes::time() + 1, sub {
+		if ($deviceMsg && $material_enabled) {
+			Slim::Control::Request::executeRequest(undef, ['material-skin', 'send-notif', 'type:info', 'msg:'.$deviceMsg, 'client:'.$client->id, 'timeout:4']);
+		}
+		main::INFOLOG && $log->is_info && $log->info($logMsg);
+		main::DEBUGLOG && $log->is_debug && $log->debug('Current volume for player '.Data::Dump::dump($client->name).' is now at '.Data::Dump::dump($client->volume));
+	});
+}
+
+
+# misc
 sub powerOffClientsScheduler {
 	main::DEBUGLOG && $log->is_debug && $log->debug('Killing existing timers for scheduled power-off');
 	Slim::Utils::Timers::killOneTimer(undef, \&powerOffClientsScheduler);

@@ -28,6 +28,7 @@ use base qw(Slim::Web::Settings);
 use Slim::Utils::Prefs;
 use Slim::Utils::Log;
 
+my $serverPrefs = preferences('server');
 my $prefs = preferences('plugin.potpourri');
 my $log = logger('plugin.potpourri');
 
@@ -50,7 +51,7 @@ sub page {
 sub prefs {
 	my $class = shift;
 	my $client = shift;
-	return ($prefs->client($client), qw(enabledsetstartvolumelevel allowRaise presetVolume));
+	return ($prefs->client($client), qw(enabledsetstartvolumelevel allowRaise presetVolume limitvolumecontrol limitvolumecontrollevel));
 }
 
 sub handler {

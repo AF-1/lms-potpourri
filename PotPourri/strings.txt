@@ -140,6 +140,9 @@ PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE_INFO
 	EN	You can refresh your client's playlist now or wait for it to auto-refresh.
 
 PLUGIN_POTPOURRI_STARTVOLUME
+	EN	Player Volume Settings
+
+PLUGIN_POTPOURRI_PLAYER_VOLUME_POWERON
 	EN	Player Power-On Volume
 
 PLUGIN_POTPOURRI_ENABLE
@@ -168,6 +171,39 @@ PLUGIN_POTPOURRI_RAISE
 
 PLUGIN_POTPOURRI_RAISE_DESC
 	EN	If the <b>last</b> volume of a player was <b>below</b> the <b>preset</b> level when the player was turned off, leave it there rather than raising it.
+
+PLUGIN_POTPOURRI_PLAYER_VOLUMECONTROL
+	EN	Limit player volume control
+
+PLUGIN_POTPOURRI_PLAYER_VOLUMECONTROL_TITLE
+	EN	Player volume control
+
+PLUGIN_POTPOURRI_PLAYER_VOLUMECONTROL_TITLE_DESC
+	EN	Set this player's volume to a <b>fixed</b> value (locked) or set a <b>maximum</b> volume level. This setting is not supposed to prevent muting or unmuting a player.<br><br>Some players may allow volume changes but they will be reverted as quickly as possible from the server side.
+
+PLUGIN_POTPOURRI_VOLUMECONTROL_DISABLED
+	EN	No restrictions
+
+PLUGIN_POTPOURRI_VOLUMECONTROL_LOCKED
+	EN	Fixed volume level
+
+PLUGIN_POTPOURRI_VOLUMECONTROL_MAXLEVEL
+	EN	Maximum volume level
+
+PLUGIN_POTPOURRI_PLAYER_VOLUMECONTROL_LEVEL
+	EN	Volume level
+
+PLUGIN_POTPOURRI_PLAYER_VOLUMECONTROL_LEVEL_DESC
+	EN	Select the volume level for the mode you selected above (fixed value or maximum volume level).<br>If you've selected <i>No restrictions</i>, this setting has no effect.
+
+PLUGIN_POTPOURRI_PLAYER_VOLUMECONTROL_FEEDBACK
+	EN	Volume is
+
+PLUGIN_POTPOURRI_PLAYER_VOLUMECONTROL_FEEDBACK_LOCKED
+	EN	locked at
+
+PLUGIN_POTPOURRI_PLAYER_VOLUMECONTROL_FEEDBACK_CAPPED
+	EN	capped at
 
 
 PLUGIN_POTPOURRI_SETTINGS_SCHEDULED_POWEROFF
