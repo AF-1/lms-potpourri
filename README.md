@@ -4,7 +4,7 @@ PotPourri
 
 A collection of various small [features](#features).
 
-<br><br>
+<br>
 <a href="https://github.com/AF-1/">⬅️ <b>Back to the list of all plugins</b></a>
 <br><br>
 
