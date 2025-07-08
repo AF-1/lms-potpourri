@@ -44,7 +44,7 @@ A collection of various small [features](#features).
 
 ## Installation
 
-**PotPourri** is available from the LMS plugin library:$${\color{lightblue}LMS > Settings > Manage Plugins}$$.<br>
+**PotPourri** is available from the LMS plugin library: `LMS > Settings > Manage Plugins`.<br>
 
 If you want to test a new patch that hasn't made it into a release version yet, you'll have to [install the plugin manually](https://github.com/AF-1/sobras/wiki/Manual-installation-of-LMS-plugins).
 <br><br><br><br>
