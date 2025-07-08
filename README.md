@@ -1,14 +1,10 @@
 PotPourri
 ====
+![Min. LMS Version](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fraw.githubusercontent.com%2FAF-1%2Fsobras%2Fmain%2Frepos%2Flms%2Fpublic.xml&query=%2F%2F*%5Blocal-name()%3D'plugin'%20and%20%40name%3D'PotPourri'%5D%2F%40minTarget&prefix=v&label=Min.%20LMS%20Version%20Required&color=darkgreen)<br>
 
 A collection of various small [features](#features).
+
 <br><br>
-## Requirements
-
-- LMS version >= 8.**4**
-- LMS database = **SQLite**
-
-<br>
 <a href="https://github.com/AF-1/">⬅️ <b>Back to the list of all plugins</b></a>
 <br><br>
 
