@@ -16,9 +16,11 @@ A collection of various small [features](#features).
 ## Features:
 - **Change the track order of *saved static* playlists** (context menu) or **client playlists** (*App menu icon*). Multiple sort options available.
 
-- Set a **power-on volume level for players** that's enforced when players are switched on.[^1] The (sub)menu **Player Volume Settings** is listed on the *LMS Settings > Player* page.
+- *Player Volume Settings* (on the `LMS Settings > Player` page):
 
-- ***Lock* the volume level** for a player or **set a *max.* player volume**.[^2] The (sub)menu **Player Volume Settings** is listed on the *LMS Settings > Player* page.
+   - Set a **power-on volume level for players** that's enforced when players are switched on.[^1]
+
+   - ***Lock* the volume level** for a player or **set a *max.* player volume**.[^2]
 
 - Set a **time to turn off *all* players** each day. No more worries about idle players that you forgot to switch off.
 
