@@ -18,9 +18,9 @@ A collection of various small [features](#features).
 
 - *Player Volume Settings* (on the `LMS Settings > Player` page):
 
-   - Set a **power-on volume level for players** that's enforced when players are switched on.[^1]
+   - Set a *power-on* volume level for players that's enforced when players are switched on.[^1]
 
-   - ***Lock* the volume level** for a player or **set a *max.* player volume**.[^2]
+   - *Lock* the volume level for a player or *set a max.* player volume.[^2]
 
 - Set a **time to turn off *all* players** each day. No more worries about idle players that you forgot to switch off.
 
