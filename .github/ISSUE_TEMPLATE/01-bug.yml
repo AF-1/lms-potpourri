@@ -14,7 +14,7 @@ body:
       required: true
 - type: markdown
   attributes:
-    value: "<br><br>"
+    value: "<br>---<br>"
 - type: checkboxes
   attributes:
     label: Check common causes of LMS (plugin) problems
@@ -24,7 +24,7 @@ body:
       required: true
 - type: markdown
   attributes:
-    value: "<br><br>"
+    value: "<br>---<br>"
 - type: textarea
   attributes:
     label: What happened?
@@ -33,7 +33,7 @@ body:
     required: true
 - type: markdown
   attributes:
-    value: "<br><br>"
+    value: "<br---><br>"
 - type: textarea
   attributes:
     label: Expected Behavior
@@ -42,7 +42,7 @@ body:
     required: true
 - type: markdown
   attributes:
-    value: "<br><br>"
+    value: "<br>---<br>"
 - type: textarea
   attributes:
     label: Steps To Reproduce
@@ -56,7 +56,7 @@ body:
     required: true
 - type: markdown
   attributes:
-    value: "<br><br>"
+    value: "<br>---<br>"
 - type: input
   attributes:
     label: LMS version
@@ -127,7 +127,7 @@ body:
     required: true
 - type: markdown
   attributes:
-    value: "<br><br>"
+    value: "<br>---<br>"
 - type: textarea
   attributes:
     label: Environment
@@ -145,7 +145,7 @@ body:
     required: false
 - type: markdown
   attributes:
-    value: "<br><br>"
+    value: "<br>---<br>"
 - type: checkboxes
   attributes:
     label: Is there relevant log output for this?
@@ -162,7 +162,7 @@ body:
     render: shell
 - type: markdown
   attributes:
-    value: "<br><br>"
+    value: "<br>---<br>"
 - type: textarea
   attributes:
     label: Anything else? 📎 Attachments etc.
@@ -174,7 +174,7 @@ body:
     required: false
 - type: markdown
   attributes:
-    value: "<br><br>"
+    value: "<br>---<br>"
 - type: markdown
   attributes:
     value: |
