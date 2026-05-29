@@ -59,7 +59,7 @@ That can happen occasionally if you click or press buttons a lot very fast. Or i
 ## Report a new issue
 
 To report a new issue please file a GitHub [**issue report**](https://github.com/AF-1/lms-potpourri/issues/new/choose).
-<br><br>
+<br><br><br>
 
 ---
 
