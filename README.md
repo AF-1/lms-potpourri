@@ -60,11 +60,11 @@ That can happen occasionally if you click or press buttons a lot very fast. Or i
 
 To report a new issue please file a GitHub [**issue report**](https://github.com/AF-1/lms-potpourri/issues/new/choose).
 <br><br>
+
 ---
 
 If this project was useful to you, you can star the repository using the <img src="screenshots/githubstar.png" width="20" height="20" alt="star" /> button in the top-right corner of this page.
-
-<br><br><br><br>
+<br><br><br>
 
 [^1]:based on parts of E. Koldinger's [**Reset Volume**](https://github.com/koldinger/ResetVolume)
 [^2]:inspired by Peter Watkins' [**Volume Lock**](https://tuxreborn.netlify.app/slim/VolumeLock.html)
