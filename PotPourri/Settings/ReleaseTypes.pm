@@ -11,20 +11,13 @@ use warnings;
 use utf8;
 
 use base qw(Plugins::PotPourri::Settings::BaseSettings);
-
-use Slim::Utils::Log;
 use Slim::Utils::Prefs;
-use Slim::Utils::Misc;
-use Slim::Utils::Strings;
+use Plugins::PotPourri::Common ':all';
 
 my $prefs = preferences('plugin.potpourri');
-my $log = logger('plugin.potpourri');
-
-my $plugin;
 
 sub new {
-	my $class = shift;
-	$plugin = shift;
+	my ($class, $plugin) = @_;
 	$class->SUPER::new($plugin);
 }
 
@@ -56,13 +49,12 @@ sub prefs {
 sub handler {
 	my ($class, $client, $paramRef) = @_;
 	my $result = undef;
-	my $callHandler = 1;
 	my $maxNoFields = 20;
 	if ($paramRef->{'saveSettings'}) {
 		my @rltypematrix;
 
 		for (my $n = 0; $n <= $maxNoFields; $n++) {
-			my $albumTitleSearchString = trim($paramRef->{"pref_albumtitlesearchstring_$n"} // '');
+			my $albumTitleSearchString = trim_leadtail($paramRef->{"pref_albumtitlesearchstring_$n"} // '');
 			my $releaseType = $paramRef->{"pref_releasetype_$n"};
 			if (length($albumTitleSearchString) > 0) {
 				push(@rltypematrix, {'albumtitlesearchstring' => $albumTitleSearchString, 'releasetype' => $releaseType});
@@ -70,18 +62,10 @@ sub handler {
 		}
 		$prefs->set('rltypematrix', \@rltypematrix);
 		$paramRef->{'rltypematrix'} = \@rltypematrix;
-
-		$result = $class->SUPER::handler($client, $paramRef);
-		$callHandler = 0;
 	}
 	if ($paramRef->{'rlmanualadjust'}) {
-		if ($callHandler) {
-			$paramRef->{'saveSettings'} = 1;
-			$result = $class->SUPER::handler($client, $paramRef);
-		}
-		Plugins::PotPourri::Common::assignReleaseTypes();
-	} elsif ($callHandler) {
-		$result = $class->SUPER::handler($client, $paramRef);
+		$paramRef->{'saveSettings'} = 1;
+		assignReleaseTypes();
 	}
 
 	# push to settings page
@@ -101,13 +85,6 @@ sub handler {
 
 	$result = $class->SUPER::handler($client, $paramRef);
 	return $result;
-}
-
-sub trim {
-	my ($str) = @_;
-	$str =~ s{^\s+}{};
-	$str =~ s{\s+$}{};
-	return $str;
 }
 
 1;

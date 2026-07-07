@@ -23,6 +23,10 @@ use Time::HiRes qw(time);
 use POSIX qw(strftime);
 use Slim::Schema;
 use File::Spec::Functions qw(:ALL);
+use List::Util qw(max);
+use Archive::Zip qw(:ERROR_CODES);
+use YAML::XS qw(LoadFile);
+use File::Temp qw(tempdir);
 
 my $log = Slim::Utils::Log->addLogCategory({
 	'category' => 'plugin.potpourri',
@@ -32,7 +36,7 @@ my $log = Slim::Utils::Log->addLogCategory({
 my $serverPrefs = preferences('server');
 my $prefs = preferences('plugin.potpourri');
 my %sortOptionLabels;
-my ($apc_enabled, $material_enabled, $originalMixerVolumeCommand);
+my ($apc_enabled, $material_enabled, $rl_enabled, $originalMixerVolumeCommand);
 
 use Plugins::PotPourri::Common ':all';
 use Plugins::PotPourri::Importer;
@@ -48,11 +52,13 @@ sub initPlugin {
 		require Plugins::PotPourri::Settings::CommentTagInfo;
 		require Plugins::PotPourri::PlayerSettings;
 		require Plugins::PotPourri::Settings::ReleaseTypes;
+		require Plugins::PotPourri::Settings::BackupRestoreSettings;
 		Plugins::PotPourri::Settings::Basic->new($class);
 		Plugins::PotPourri::Settings::Export->new($class);
 		Plugins::PotPourri::Settings::CommentTagInfo->new($class);
 		Plugins::PotPourri::PlayerSettings->new($class);
 		Plugins::PotPourri::Settings::ReleaseTypes->new($class);
+		Plugins::PotPourri::Settings::BackupRestoreSettings->new($class);
 	}
 
 	Slim::Menu::PlaylistInfo->registerInfoProvider(potpourri_changeplsortorder => (
@@ -67,12 +73,21 @@ sub initPlugin {
 			func => sub { return getTrackIdForContextMenu(@_); }
 		));
 	}
+	if ($prefs->get('contextmenusimilartracktitlesbysameartist')) {
+		Slim::Menu::TrackInfo->registerInfoProvider('ppt_similartracktitlesbysameartist' => (
+			before => 'moreinfo',
+			func => sub { return _getSimilarTrackTitlesBySameArtistHandler(@_); }
+		));
+	}
 
 	Slim::Web::Pages->addPageFunction('playlistsortorderselect', \&changePLtrackOrder_web);
 	Slim::Web::Pages->addPageFunction('playlistsortorderoptions.html', \&changePLtrackOrder_web);
+	Slim::Web::Pages->addPageFunction('showsimilartracktitlesbysameartistlist.html', \&_getSimilarTrackTitlesBySameArtist_web);
 
 	Slim::Control::Request::addDispatch(['potpourri', 'changeplaylisttrackorderoptions', '_playlistid', '_playlistname'], [1, 1, 1, \&changePLtrackOrder_jive_choice]);
 	Slim::Control::Request::addDispatch(['potpourri', 'changeplaylisttrackorder', '_playlistid', '_sortoption', '_playlistname'], [1, 0, 1, \&changePLtrackOrder_jive]);
+	Slim::Control::Request::addDispatch(['potpourri', 'similartracktitlesbysameartist', '_trackid'], [1, 0, 1, \&_getSimilarTrackTitlesBySameArtist_jive]);
+	Slim::Control::Request::addDispatch(['potpourri', 'actionsmenu'], [0, 1, 1, \&_getActionsMenu]);
 	$originalMixerVolumeCommand = Slim::Control::Request::addDispatch(['mixer', 'volume', '_newvalue'],[1, 0, 1, \&_limitVolumeControl]);
 
 	Slim::Control::Request::subscribe(\&setStartVolumeLevel,[['power']]);
@@ -91,12 +106,30 @@ sub initPlugin {
 	}
 }
 
+sub postinitPlugin {
+	$apc_enabled = Slim::Utils::PluginManager->isEnabled('Plugins::AlternativePlayCount::Plugin');
+	main::DEBUGLOG && $log->is_debug && $log->debug('Plugin "Alternative Play Count" is enabled') if $apc_enabled;
+	$rl_enabled = Slim::Utils::PluginManager->isEnabled('Plugins::RatingsLight::Plugin');
+	main::DEBUGLOG && $log->is_debug && $log->debug('Plugin "Ratings Light" is enabled') if $rl_enabled;
+	$material_enabled = Slim::Utils::PluginManager->isEnabled('Plugins::MaterialSkin::Plugin');
+	main::DEBUGLOG && $log->is_debug && $log->debug('Plugin "Material Skin" is enabled') if $material_enabled;
+
+	unless (!Slim::Schema::hasLibrary() || Slim::Music::Import->stillScanning) {
+		initPLtoplevellink();
+	}
+	powerOffClientsScheduler();
+	initMatrix();
+}
+
 sub initPrefs {
 	$prefs->init({
 		toplevelplaylistname => 'none',
 		powerofftime => '01:30',
 		appitem => 1,
 		limitvolumecontrollevel => 50,
+		contextmenusimilartracktitlesbysameartist => 1,
+		similaritythreshold => 85,
+		rltypematrix => [],
 	});
 
 	$prefs->set('status_exportingtoplaylistfiles', '0');
@@ -116,7 +149,7 @@ sub initPrefs {
 			Slim::Music::Info::clearFormatDisplayCache();
 		}, 'commenttaginfoconfigmatrix');
 	$prefs->setChange(sub {
-			main::DEBUGLOG && $log->is_debug && $log->debug('De-/reregistering infoprovider.');
+			main::DEBUGLOG && $log->is_debug && $log->debug('De-/reregistering infoprovider zppt_infotrackid');
 			Slim::Menu::TrackInfo->deregisterInfoProvider('zppt_infotrackid');
 			if ($prefs->get('displaytrackid')) {
 				Slim::Menu::TrackInfo->registerInfoProvider('zppt_infotrackid' => (
@@ -126,6 +159,16 @@ sub initPrefs {
 			}
 		}, 'displaytrackid');
 	$prefs->setChange(sub {
+			main::DEBUGLOG && $log->is_debug && $log->debug('De-/reregistering infoprovider ppt_similartracktitlesbysameartist');
+			Slim::Menu::TrackInfo->deregisterInfoProvider('ppt_similartracktitlesbysameartist');
+			if ($prefs->get('contextmenusimilartracktitlesbysameartist')) {
+				Slim::Menu::TrackInfo->registerInfoProvider('ppt_similartracktitlesbysameartist' => (
+					before => 'moreinfo',
+					func => sub { return _getSimilarTrackTitlesBySameArtistHandler(@_); }
+				));
+			}
+		}, 'contextmenusimilartracktitlesbysameartist');
+	$prefs->setChange(sub {
 		my ($name, $value, $client) = @_;
 		_prefsChangeCheck($client);
 	}, 'limitvolumecontrol', 'limitvolumecontrollevel');
@@ -133,19 +176,6 @@ sub initPrefs {
 
 	my $i = 1;
 	%sortOptionLabels = map { $i++ => $_ } ('Random order', 'Inverted order', 'Artist > album > disc no. > track no.', 'Album > artist > disc no. > track no.', 'Album > disc no. > track no.', 'Genre', 'Year', 'Track number', 'Track title', 'Date added', 'Play count', 'Play count (APC)', 'Date last played', 'Date last played (APC)', 'Rating', 'Dynamic played/skipped value (APC)', 'Track length', 'BPM', 'Bitrate', 'Album artist', 'Composer', 'Conductor', 'Band');
-}
-
-sub postinitPlugin {
-	$apc_enabled = Slim::Utils::PluginManager->isEnabled('Plugins::AlternativePlayCount::Plugin');
-	main::DEBUGLOG && $log->is_debug && $log->debug('Plugin "Alternative Play Count" is enabled') if $apc_enabled;
-	$material_enabled = Slim::Utils::PluginManager->isEnabled('Plugins::MaterialSkin::Plugin');
-	main::DEBUGLOG && $log->is_debug && $log->debug('Plugin "Material Skin" is enabled') if $material_enabled;
-
-	unless (!Slim::Schema::hasLibrary() || Slim::Music::Import->stillScanning) {
-		initPLtoplevellink();
-	}
-	powerOffClientsScheduler();
-	initMatrix();
 }
 
 
@@ -333,7 +363,7 @@ sub handleFeed {
 
 	my $items = [
 		{
-			name => cstring($client, 'PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER').' '.$client->name,
+			name => cstring($client, 'PLUGIN_POTPOURRI_CLIENTPL_CHANGEORDER').' '.$client->name,
 			type => 'link',
 			url => \&getSortOptions,
 		},
@@ -395,11 +425,11 @@ sub changeClientPLTrackOrder {
 
 	my $items = [
 		{
-			name => string('PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE').' '.$sortOptionLabels{$sortOption},
+			name => string('PLUGIN_POTPOURRI_CLIENTPL_CHANGEORDER_DONE').' '.$sortOptionLabels{$sortOption},
 			type => 'text',
 		},
 		{
-			name => string('PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE_INFO'),
+			name => string('PLUGIN_POTPOURRI_CLIENTPL_CHANGEORDER_DONE_INFO'),
 			type => 'text',
 		},
 	];
@@ -414,11 +444,11 @@ sub sortTracks {
 
 	# Randomize
 	if ($sortOption == 1) {
-		@tracks = shuffle(shuffle(@tracks));
+		@tracks = shuffle(@tracks);
 
 	# Invert
 	} elsif ($sortOption == 2) {
-		@tracks = reverse @tracks
+		@tracks = reverse @tracks;
 
 	# By artist > album > disc no. > track no.
 	} elsif ($sortOption == 3) {
@@ -458,12 +488,8 @@ sub sortTracks {
 
 	# By play count (APC)
 	} elsif ($sortOption == 12) {
-		my %lookupHash;
-		foreach (@tracks) {
-			my $trackURLmd5 = $_->urlmd5;
-			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'playCount');
-		}
-		@tracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @tracks;
+		my $lookupHash = APCqueryBatch([map { $_->urlmd5 } @tracks], 'playCount');
+		@tracks = sort {($lookupHash->{$b->urlmd5} || 0) <=> ($lookupHash->{$a->urlmd5} || 0)} @tracks;
 
 	# By date last played
 	} elsif ($sortOption == 13) {
@@ -471,12 +497,8 @@ sub sortTracks {
 
 	# By date last played (APC)
 	} elsif ($sortOption == 14) {
-		my %lookupHash;
-		foreach (@tracks) {
-			my $trackURLmd5 = $_->urlmd5;
-			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'lastPlayed');
-		}
-		@tracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @tracks;
+		my $lookupHash = APCqueryBatch([map { $_->urlmd5 } @tracks], 'lastPlayed');
+		@tracks = sort {($lookupHash->{$b->urlmd5} || 0) <=> ($lookupHash->{$a->urlmd5} || 0)} @tracks;
 
 	# By rating
 	} elsif ($sortOption == 15) {
@@ -484,12 +506,8 @@ sub sortTracks {
 
 	# By dynamic played/skipped value (DPSV) (APC)
 	} elsif ($sortOption == 16) {
-		my %lookupHash;
-		foreach (@tracks) {
-			my $trackURLmd5 = $_->urlmd5;
-			$lookupHash{$trackURLmd5} = APCquery($trackURLmd5, 'dynPSval');
-		}
-		@tracks = sort {($lookupHash{$b->urlmd5} || 0) <=> ($lookupHash{$a->urlmd5} || 0)} @tracks;
+		my $lookupHash = APCqueryBatch([map { $_->urlmd5 } @tracks], 'dynPSval');
+		@tracks = sort {($lookupHash->{$b->urlmd5} || 0) <=> ($lookupHash->{$a->urlmd5} || 0)} @tracks;
 
 	# By duration
 	} elsif ($sortOption == 17) {
@@ -564,8 +582,7 @@ main::INFOLOG && $log->is_info && $log->info('playlistID = '.Data::Dump::dump($p
 			my $thisTrackURL_extURL = changeExportFilePath($thisTrackURL, 1) if ($thisTrack->get('remote') != 1);
 			print $output '#EXTURL:'.$thisTrackURL_extURL."\n" if $thisTrackURL_extURL && $thisTrackURL_extURL ne '';
 
-			my $thisTrackPath = pathForItem($thisTrackURL);
-			$thisTrackPath = Slim::Utils::Unicode::utf8decode_locale(pathForItem($thisTrackURL)); # diff
+			my $thisTrackPath = Slim::Utils::Unicode::utf8decode_locale(pathForItem($thisTrackURL));
 			$thisTrackPath = changeExportFilePath($thisTrackPath) if ($thisTrack->get('remote') != 1);
 
 			print $output $thisTrackPath."\n";
@@ -674,7 +691,7 @@ sub initExportBaseFilePathMatrix {
 		foreach my $newdir (@{$lmsmusicdirs}) {
 			push (@{$exportbasefilepathmatrix}, {lmsbasepath => $newdir, substitutebasepath => ''}) unless exists $seen{$newdir};
 		}
-		$prefs->set('exportbasefilepathmatrix', \@{$exportbasefilepathmatrix});
+		$prefs->set('exportbasefilepathmatrix', $exportbasefilepathmatrix);
 	}
 }
 
@@ -702,14 +719,14 @@ sub initMatrix {
 			if (defined $searchstring && defined $contextmenucategoryname && defined $contextmenucategorycontent) {
 				my $contextmenuposition = $configmatrix->{$thisconfig}->{'contextmenuposition'};
 				my $possiblecontextmenupositions = [
-					"after => 'artwork'", # 0
-					"after => 'bottom'", # 1
-					"parent => 'moreinfo', isa => 'top'", # 2
-					"parent => 'moreinfo', isa => 'bottom'" # 3
+					['after', 'artwork'], # 0
+					['after', 'bottom'], # 1
+					['parent', 'moreinfo', 'isa', 'top'], # 2
+					['parent', 'moreinfo', 'isa', 'bottom'], # 3
 				];
-				my $thisPos = @{$possiblecontextmenupositions}[$contextmenuposition];
+				my $thisPos = $possiblecontextmenupositions->[$contextmenuposition];
 				Slim::Menu::TrackInfo->registerInfoProvider($regID => (
-					eval($thisPos),
+					@{$thisPos},
 					func => sub {
 						return getTrackInfo(@_,$thisconfigID);
 					}
@@ -833,19 +850,6 @@ sub addTitleFormat {
 	}
 	push @{$titleFormats},$titleformat;
 	$serverPrefs->set('titleFormat',$titleFormats);
-}
-
-sub trim_leadtail {
-	my ($str) = @_;
-	$str =~ s{^\s+}{};
-	$str =~ s{\s+$}{};
-	return $str;
-}
-
-sub trim_all {
-	my ($str) = @_;
-	$str =~ s/ //g;
-	return $str;
 }
 
 
@@ -987,6 +991,527 @@ sub _volFeedback {
 }
 
 
+# track context menu: show tracks with similar track titles by same artist, ordered by lastPlayed desc
+sub _getSimilarTrackTitlesBySameArtistHandler {
+	my ($client, $url, $obj, $remoteMeta, $tags) = @_;
+	$tags ||= {};
+
+	my $trackID= $obj->id;
+	main::DEBUGLOG && $log->is_debug && $log->debug('trackID = '.Data::Dump::dump($trackID));
+
+	if ((Slim::Music::Info::isRemoteURL($url) == 1) && (!defined($obj->extid))) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('Track is remote but not part of LMS library. Track URL: '.$url);
+		return;
+	}
+
+	if ($tags->{menuMode}) {
+		return {
+			type => 'redirect',
+			jive => {
+				actions => {
+					go => {
+						player => 0,
+						cmd => ['potpourri', 'similartracktitlesbysameartist', $trackID],
+					},
+				}
+			},
+			name => string('PLUGIN_POTPOURRI_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST'),
+			favorites => 0,
+		};
+	} else {
+		return {
+			type => 'redirect',
+			name => string('PLUGIN_POTPOURRI_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST'),
+			favorites => 0,
+			trackid => $trackID,
+			web => {
+				url => 'plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid='.$trackID
+			},
+		};
+	}
+}
+
+sub _getSimilarTrackTitlesBySameArtist_web {
+	my ($client, $params, $callback, $httpClient, $response) = @_;
+
+	## execute action if action and action track id(s) provided
+	my $action = $params->{'action'};
+	main::DEBUGLOG && $log->is_debug && $log->debug('action = '.Data::Dump::dump($action));
+	my $actionTrackIDs = $params->{'actiontrackids'};
+	main::DEBUGLOG && $log->is_debug && $log->debug('actionTrackIDs = '.Data::Dump::dump($actionTrackIDs));
+
+	if ($action && ($action eq 'load' || $action eq 'insert' || $action eq 'add') && $actionTrackIDs) {
+		if (!$client) {
+			$log->warn('Client required. Can\'t proceed.');
+			return;
+		}
+		$client->execute(['playlistcontrol', 'cmd:'.$action, 'track_id:'.$actionTrackIDs]);
+	}
+
+	my $trackID = $params->{trackid} || 0;
+	main::DEBUGLOG && $log->is_debug && $log->debug('params->{trackid} = '.Data::Dump::dump($params->{trackid}));
+
+	my $similarTracks = _getSimilarTrackTitlesBySameArtist($trackID) // [];
+
+	my @similartracks_webpage = ();
+	my @alltrackids = ();
+
+	foreach my $similarTrack (@{$similarTracks}) {
+		my $track_id = $similarTrack->id;
+		my $tracktitle = trimStringLength($similarTrack->title, 70);
+		if ($rl_enabled && $similarTrack->rating) {
+			$tracktitle .= getRatingTextLine($similarTrack->rating);
+		}
+		my $artworkID = $similarTrack->album->artwork;
+		my $artistname = trimStringLength($similarTrack->artist->name, 80);
+		my $artistID = $similarTrack->artist->id;
+		my $albumname = trimStringLength($similarTrack->album->name, 80);
+		my $albumID = $similarTrack->album->id;
+
+		push (@similartracks_webpage, {trackid => $track_id, tracktitle => $tracktitle, artistname => $artistname, artistID => $artistID, albumname => $albumname, albumID => $albumID, artworkid => $artworkID});
+		push @alltrackids, $track_id;
+	}
+	my $listalltrackids = join (',', @alltrackids);
+	$params->{trackid} = $trackID;
+	$params->{trackcount} = scalar(@similartracks_webpage);
+	$params->{alltrackids} = $listalltrackids;
+	$params->{similartracktitles} = \@similartracks_webpage;
+	return Slim::Web::HTTP::filltemplatefile('plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html', $params);
+}
+
+sub _getSimilarTrackTitlesBySameArtist_jive {
+	my $request = shift;
+	my $client = $request->client();
+
+	if (!$request->isCommand([['potpourri'],['similartracktitlesbysameartist']])) {
+		$log->warn('incorrect command');
+		$request->setStatusBadDispatch();
+		return;
+	}
+	if (!defined $client) {
+		$log->warn('client required!');
+		$request->setStatusNeedsClient();
+		return;
+	}
+	my $trackID = $request->getParam('_trackid');
+
+	return unless $trackID;
+	main::DEBUGLOG && $log->is_debug && $log->debug('trackID = '.$trackID);
+
+	my $similarTracks = _getSimilarTrackTitlesBySameArtist($trackID);
+
+	my %menuStyle = ();
+	$menuStyle{'titleStyle'} = 'mymusic';
+	$menuStyle{'menuStyle'} = 'album';
+	$menuStyle{'windowStyle'} = 'icon_list';
+	$menuStyle{'text'} = string('PLUGIN_POTPOURRI_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST');
+	$request->addResult('window',\%menuStyle);
+
+	if (!scalar @{$similarTracks}) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('No tracks with similar track titles found for trackID: '.$trackID);
+		$request->addResultLoop('item_loop', 0, 'text', string('PLUGIN_POTPOURRI_CONTEXTMENU_NOSIMILARTRACKTITLESFOUND'));
+		$request->addResultLoop('item_loop', 0, 'style', 'itemNoAction');
+		$request->addResult('offset', 0);
+		$request->addResult('count', 1);
+		$request->setStatusDone();
+		return;
+	}
+
+	my $cnt = 0;
+	my $trackCount = scalar(@{$similarTracks});
+	if ($trackCount > 1) {
+		$cnt = 1;
+	}
+	my @alltrackids = ();
+
+	foreach my $similarTrack (@{$similarTracks}) {
+		if ($similarTrack->coverid) {
+			$request->addResultLoop('item_loop', $cnt, 'icon-id', $similarTrack->coverid);
+		} else {
+			$request->addResultLoop('item_loop', $cnt, 'icon', 'plugins/PotPourri/html/images/coverplaceholder.png');
+		}
+		push @alltrackids, $similarTrack->id;
+
+		my $tracktitle = trimStringLength($similarTrack->title, 60);
+		if ($rl_enabled && $similarTrack->rating) {
+			$tracktitle .= getRatingTextLine($similarTrack->rating);
+		}
+		my $sepchar = HTML::Entities::decode_entities('&#x2022;'); # "bullet"
+		my $artistname = $similarTrack->artist->name;
+		$artistname = trimStringLength($artistname, 70);
+		my $albumname = $similarTrack->album->name;
+		$albumname = trimStringLength($albumname, 70);
+		my $returntext = $tracktitle."\n".$artistname.' '.$sepchar.' '.$albumname;
+
+		my $actions = {
+			'go' => {
+				'player' => 0,
+				'cmd' => ['potpourri', 'actionsmenu', 'track_id:'.$similarTrack->id, 'allsongs:0'],
+			},
+		};
+
+		$request->addResultLoop('item_loop', $cnt, 'type', 'redirect');
+		$request->addResultLoop('item_loop', $cnt, 'actions', $actions);
+		$request->addResultLoop('item_loop', $cnt, 'text', $returntext);
+		$cnt++;
+	}
+
+	if ($trackCount > 1) {
+		my $listalltrackids = join (',', @alltrackids);
+		my $actions = {
+			'go' => {
+				'player' => 0,
+				'cmd' => ['potpourri', 'actionsmenu', 'track_id:'.$listalltrackids, 'allsongs:1'],
+			},
+		};
+		$request->addResultLoop('item_loop', 0, 'type', 'redirect');
+		$request->addResultLoop('item_loop', 0, 'actions', $actions);
+		$request->addResultLoop('item_loop', 0, 'icon', 'plugins/PotPourri/html/images/coverplaceholder.png');
+		$request->addResultLoop('item_loop', 0, 'text', string('PLUGIN_POTPOURRI_MENUS_TRACKS_ALLSONGS').' ('.$trackCount.')');
+		$cnt++;
+	}
+
+	$request->addResult('offset', 0);
+	$request->addResult('count', $cnt);
+	$request->setStatusDone();
+}
+
+sub _getActionsMenu {
+	my $request = shift;
+	if (!$request->isQuery([['potpourri'],['actionsmenu']])) {
+		$log->warn('incorrect command');
+		$request->setStatusBadDispatch();
+		return;
+	}
+
+	my $trackID = $request->getParam('track_id');
+	my $allsongs = $request->getParam('allsongs');
+
+	$request->addResult('window', {
+		menustyle => 'album',
+	});
+
+	my $actionsmenuitems = [
+		{
+			itemtext => string('PLUGIN_POTPOURRI_MENUS_ACTIONMENU_PLAYNOW'),
+			itemcmd1 => 'playlistcontrol',
+			itemcmd2 => 'load'
+		},
+		{
+			itemtext => string('PLUGIN_POTPOURRI_MENUS_ACTIONMENU_PLAYNEXT'),
+			itemcmd1 => 'playlistcontrol',
+			itemcmd2 => 'insert'
+		},
+		{
+			itemtext => string('PLUGIN_POTPOURRI_MENUS_ACTIONMENU_APPEND'),
+			itemcmd1 => 'playlistcontrol',
+			itemcmd2 => 'add'
+		},
+		{
+			itemtext => string('PLUGIN_POTPOURRI_MENUS_ACTIONMENU_MOREINFO'),
+			itemcmd1 => 'trackinfo',
+			itemcmd2 => 'items'
+		}];
+
+	my $cnt = 0;
+	foreach my $menuitem (@{$actionsmenuitems}) {
+		my $menuitemtext = $menuitem->{'itemtext'};
+		my $menuitemcmd1 = $menuitem->{'itemcmd1'};
+		my $menuitemcmd2 = $menuitem->{'itemcmd2'};
+		my $actions;
+
+		unless (($menuitemcmd1 eq 'trackinfo') && ($allsongs == 1)) {
+			if ($menuitemcmd1 eq 'trackinfo') {
+				my %itemParams = (
+					'track_id' => $trackID,
+					'menu' => 1,
+					'usecontextmenu' => 1,
+				);
+				$actions = {
+					'go' => {
+						'player' => 0,
+						'cmd' => [$menuitemcmd1, $menuitemcmd2],
+						'params' => {
+							'menu' => 1,
+							'track_id' => $trackID,
+						},
+					},
+					'play' => {
+						'player' => 0,
+						'cmd' => [$menuitemcmd1, $menuitemcmd2],
+						'params' => {
+							'menu' => 1,
+							'track_id' => $trackID,
+						},
+					}
+				};
+			} else {
+				$actions = {
+					'go' => {
+						'player' => 0,
+						'cmd' => [$menuitemcmd1, 'cmd:'.$menuitemcmd2, 'track_id:'.$trackID],
+					},
+					'play' => {
+						'player' => 0,
+						'cmd' => [$menuitemcmd1, 'cmd:'.$menuitemcmd2, 'track_id:'.$trackID],
+					}
+				};
+				$request->addResultLoop('item_loop',$cnt,'nextWindow','parent');
+			}
+
+			$request->addResultLoop('item_loop',$cnt,'actions',$actions);
+			$request->addResultLoop('item_loop',$cnt,'text',$menuitemtext);
+			$request->addResultLoop('item_loop',$cnt,'style', 'itemplay') unless $menuitemcmd1 eq 'trackinfo';
+			$cnt++;
+		}
+	}
+	$request->addResult('offset',0);
+	$request->addResult('count',$cnt);
+	$request->setStatusDone();
+}
+
+sub _getSimilarTrackTitlesBySameArtist {
+	require String::LCSS;
+	my $curTrackID = shift;
+	return if !$curTrackID;
+	my $curTrack = Slim::Schema->rs('Track')->find($curTrackID);
+
+	my $started = time();
+	my $curTitle = $curTrack->title;
+	my $curTitleNormalised = normaliseTrackTitle($curTitle);
+	my $artist = $curTrack->artist;
+	my @similarTracks = ();
+
+	if (defined($artist) && defined($curTitle)) {
+		my $similarityThreshold = $prefs->get('similaritythreshold') // 85;
+		my ($artistTrackID, $trackTitle, $trackTitleSearch);
+		my $dbh = Slim::Schema->dbh;
+		my $sth = $dbh->prepare("select tracks.id,tracks.title,tracks.titlesearch from tracks join contributor_track on tracks.id = contributor_track.track and contributor_track.contributor = ? left join tracks_persistent on tracks.urlmd5 = tracks_persistent.urlmd5 where tracks.id != ? group by tracks.id order by ifnull(tracks_persistent.lastPlayed,0) desc");
+		eval {
+			$sth->bind_param(1, $artist->id);
+			$sth->bind_param(2, $curTrack->id);
+			$sth->execute();
+			$sth->bind_columns(undef, \$artistTrackID, \$trackTitle, \$trackTitleSearch);
+			while ($sth->fetch()) {
+				if (defined($trackTitle)) {
+					my $titleNormalised = normaliseTrackTitle($trackTitle);
+					main::DEBUGLOG && $log->is_debug && $log->debug("-- currentTrackTitle normalised = $curTitleNormalised");
+					main::DEBUGLOG && $log->is_debug && $log->debug("-- titleNormalised normalised = $titleNormalised");
+
+					my @result = String::LCSS::lcss($curTitleNormalised, $titleNormalised);
+					main::DEBUGLOG && $log->is_debug && $log->debug('-- Longest common substring = '.Data::Dump::dump($result[0]));
+
+					if ($result[0] && length($result[0]) > 3) { # returns undef if longest common susbstring length is one char or less
+						# similarity = max. length LCSS/track title
+						my $similarity = max(length($result[0])/length($curTitleNormalised), length($result[0])/length($titleNormalised)) * 100;
+						main::DEBUGLOG && $log->is_debug && $log->debug('--- longest common substring = '.$result[0]);
+						main::INFOLOG && $log->is_info && $log->info('--- Similarity = '.Data::Dump::dump($similarity)."\t-- ".$trackTitleSearch);
+
+						if ($similarity < $similarityThreshold) {
+							main::INFOLOG && $log->is_info && $log->info(">>> Similarity $similarity < similarity threshold $similarityThreshold for track title '$trackTitle' and current track title '$curTitle'");
+						} else {
+							main::INFOLOG && $log->is_info && $log->info("--- Similarity of track is above specified minimum value.");
+							my $thisTrack = Slim::Schema->rs('Track')->find($artistTrackID);
+							push @similarTracks, $thisTrack;
+						}
+					} else {
+						main::INFOLOG && $log->is_info && $log->info("--- Tracks don't have a common substring with the minimum length.");
+						next;
+					}
+				}
+			}
+		};
+		if ($@) {
+			$log->error("Error executing SQL: $@");
+		}
+		$sth->finish();
+		main::DEBUGLOG && $log->is_debug && $log->debug('Exec time = '.(time()-$started).' secs.');
+	}
+	return \@similarTracks;
+}
+
+sub normaliseTrackTitle {
+	my $title = shift;
+	return if !$title;
+	$title =~ s/[\[\(].*[\)\]]*//g; # delete everything between brackets + parentheses
+	$title =~ s/((bonus|deluxe|12-inch|live|extended|instrumental|edit|interlude|alt\.|alternate|alternative|album|single|ep|maxi)+[ -]*(version|remix|mix|take|track))//ig; # delete some common words
+	$title = uc(Slim::Utils::Text::ignoreCase($title, 1));
+	return $title;
+}
+
+sub getRatingTextLine {
+	my $rating100ScaleValue = shift;
+	my $nobreakspace = HTML::Entities::decode_entities('&#xa0;');
+	my $displayratingchar = preferences('plugin.ratingslight')->get('displayratingchar') // 0; # 0 = common text star *, 1 = "blackstar"
+	my $ratingchar = $displayratingchar ? HTML::Entities::decode_entities('&#x2605;') : ' *';
+	my $fractionchar = HTML::Entities::decode_entities('&#xbd;'); # "vulgar fraction one half"
+	my $text = '';
+
+	if ($rating100ScaleValue > 0) {
+		$rating100ScaleValue = int(($rating100ScaleValue + 5)/10) * 10;
+		my $detecthalfstars = ($rating100ScaleValue % 20 == 10) ? 1 : 0;
+		my $ratingstars = int($rating100ScaleValue / 20);
+
+		if ($detecthalfstars == 1) {
+			if ($displayratingchar) {
+				$text = ($ratingchar x $ratingstars).$fractionchar;
+			} else {
+				$text = ($ratingchar x $ratingstars).' '.$fractionchar;
+			}
+		} else {
+			$text = ($ratingchar x $ratingstars);
+		}
+
+		if ($displayratingchar) {
+			my $sepchar = HTML::Entities::decode_entities('&#x2022;'); # "bullet"
+			$text = $nobreakspace.$sepchar.$nobreakspace.$text;
+		} else {
+			$text = $nobreakspace.'('.$text.$nobreakspace.')';
+		}
+	}
+	return $text;
+}
+
+
+# backup / restore settings (prefs only)
+sub createBackup {
+	my $backupFolder = $prefs->get('backupoutputfolder');
+	return 0 unless $backupFolder && -d $backupFolder;
+
+	my $prefsDir = Slim::Utils::Prefs::dir() || Slim::Utils::OSDetect::dirsFor('prefs');
+	main::DEBUGLOG && $log->is_debug && $log->debug('prefsDir = '.Data::Dump::dump($prefsDir));
+	my $pluginPrefsDir = catdir($prefsDir, 'plugin');
+
+	my $zip = Archive::Zip->new();
+
+	for my $rootPrefsFile (_prefsFilesIn($prefsDir)) {
+		next unless -f $rootPrefsFile;
+		my (undef, undef, $fileName) = splitpath($rootPrefsFile);
+		unless ($zip->addFile($rootPrefsFile, $fileName)) {
+			$log->error("Could not add $rootPrefsFile to backup archive - skipping it");
+		}
+	}
+
+	for my $pluginPrefsFile (_prefsFilesIn($pluginPrefsDir)) {
+		next unless -f $pluginPrefsFile;
+		my (undef, undef, $fileName) = splitpath($pluginPrefsFile);
+		# zip entry names always use forward slashes, regardless of OS
+		unless ($zip->addFile($pluginPrefsFile, "plugin/$fileName")) {
+			$log->error("Could not add $pluginPrefsFile to backup archive - skipping it");
+		}
+	}
+
+	my $backupFile = catfile($backupFolder, 'PotPourri_backup_' . strftime('%Y%m%d_%H%M%S', localtime) . '.zip');
+	if ($zip->writeToFileNamed($backupFile) != AZ_OK) {
+		$log->error("Could not write backup archive to $backupFile");
+		return 0;
+	}
+
+	main::INFOLOG && $log->is_info && $log->info("Backup archive created: $backupFile");
+	return 1;
+}
+
+sub _prefsFilesIn {
+	my $dir = shift;
+	return () unless -d $dir;
+	opendir(my $dh, $dir) or return ();
+	my @files = map { catfile($dir, $_) } grep { /\.prefs$/i } readdir($dh);
+	closedir($dh);
+	return @files;
+}
+
+sub listBackupContents {
+	my $zipFile = shift;
+	return [] unless $zipFile && -f $zipFile;
+
+	my $zip = Archive::Zip->new();
+	if ($zip->read($zipFile) != AZ_OK) {
+		$log->error("Could not read backup archive $zipFile");
+		return [];
+	}
+
+	my @contents;
+	for my $member ($zip->members) {
+		my $fileName = $member->fileName;
+		next unless $fileName =~ /\.prefs$/i;
+
+		my $namespace;
+		if ($fileName =~ m{^plugin/([^/]+)\.prefs$}i) {
+			$namespace = "plugin.$1";
+		} elsif ($fileName =~ m{^([^/]+)\.prefs$}i) {
+			$namespace = $1;
+		} else {
+			next;
+		}
+		push @contents, { namespace => $namespace, filename => $fileName };
+	}
+
+	return [ sort { $a->{'namespace'} cmp $b->{'namespace'} } @contents ];
+}
+
+sub restoreFromBackup {
+	my $selectedNamespaces = shift;
+	my $restoreFile = $prefs->get('restorefile');
+	return (0, 0) unless $restoreFile && -f $restoreFile;
+
+	my $zip = Archive::Zip->new();
+	if ($zip->read($restoreFile) != AZ_OK) {
+		$log->error("Could not read backup archive $restoreFile");
+		return (0, 0);
+	}
+
+	my $tempDir = tempdir(CLEANUP => 1);
+
+	# queue any rescan/wipeCache triggered by restoring media-related server prefs
+	# let the user trigger rescan manually after restarting
+	Slim::Music::Import->doQueueScanTasks(1);
+
+	for my $member ($zip->members) {
+		my $fileName = $member->fileName;
+		next unless $fileName =~ /\.prefs$/i;
+
+		my $namespace;
+		if ($fileName =~ m{^plugin/([^/]+)\.prefs$}i) {
+			$namespace = "plugin.$1";
+		} elsif ($fileName =~ m{^([^/]+)\.prefs$}i) {
+			$namespace = $1;
+		} else {
+			next;
+		}
+
+		next if $selectedNamespaces && !$selectedNamespaces->{$namespace};
+
+		my $tempFile = catfile($tempDir, 'restore.prefs');
+		if ($member->extractToFileNamed($tempFile) != AZ_OK) {
+			$log->error("Could not extract $fileName from backup archive");
+			next;
+		}
+
+		my $data = eval { LoadFile($tempFile) };
+		unlink $tempFile;
+
+		if ($@ || ref $data ne 'HASH') {
+			$log->error("Could not parse $fileName from backup archive: " . ($@ || 'invalid data'));
+			next;
+		}
+
+		my $namespacePrefs = preferences($namespace);
+		for my $key (keys %{$data}) {
+			next if $key =~ /^_/;
+			my $newValue = $data->{$key};
+			my $oldValue = $namespacePrefs->get($key);
+			# skip unchanged values ourselves - Base::set() only short-circuits for scalars, not for array/hash refs
+			# otherwise restored list/hash prefs (e.g. media folders) would still fire its onChange callbacks even if the value hasn't actually changed
+			next if Data::Dump::dump($oldValue) eq Data::Dump::dump($newValue);
+			$namespacePrefs->set($key, $newValue);
+		}
+		main::INFOLOG && $log->is_info && $log->info("Restored preferences for namespace $namespace from backup");
+	}
+
+	return (1, Slim::Music::Import->hasScanTask() ? 1 : 0);
+}
+
+
 # misc
 sub powerOffClientsScheduler {
 	main::DEBUGLOG && $log->is_debug && $log->debug('Killing existing timers for scheduled power-off');
@@ -999,7 +1524,7 @@ sub powerOffClientsScheduler {
 		if (defined($powerOffTime) && $powerOffTime ne '') {
 			my $time = 0;
 			$powerOffTime =~ s{
-				^(0?[0-9]|1[0-9]|2[0-4]):([0-5][0-9])\s*(P|PM|A|AM)?$
+				^(0?[0-9]|1[0-9]|2[0-3]):([0-5][0-9])\s*(P|PM|A|AM)?$
 			}{
 				if (defined $3) {
 					$time = ($1 == 12?0:$1 * 60 * 60) + ($2 * 60) + ($3 =~ /P/?12 * 60 * 60:0);
@@ -1067,26 +1592,37 @@ sub purgeDeadTracksPersistent {
 	my $sqlstatement = "delete from tracks_persistent where urlmd5 not in (select urlmd5 from tracks where tracks.urlmd5 = tracks_persistent.urlmd5)";
 	eval {$dbh->do($sqlstatement)};
 	if ($@) {
-		$log->error("Database error: $DBI::errstr\n");
-		eval { rollback($dbh); };
+		$log->error("Database error: $@");
 	}
 	main::DEBUGLOG && $log->is_debug && $log->debug('Finished removing dead tracks from tracks_persistent.');
 }
 
-
-sub APCquery {
-	my ($trackURLmd5, $queryType) = @_;
-	return if (!$trackURLmd5 || !$queryType);
+sub APCqueryBatch {
+	my ($trackURLmd5s, $queryType) = @_;
+	my %result;
+	return \%result unless $trackURLmd5s && @{$trackURLmd5s} && $queryType;
 	my $dbh = Slim::Schema->dbh;
-	my $returnVal;
-	my $sql = "select ifnull($queryType, 0) from alternativeplaycount where urlmd5 = \"$trackURLmd5\"";
-	my $sth = $dbh->prepare($sql);
-	$sth->execute();
-	$sth->bind_columns(undef, \$returnVal);
-	$sth->fetch();
+	my $sth = $dbh->prepare("select ifnull($queryType, 0) from alternativeplaycount where urlmd5 = ?");
+	unless ($sth) {
+		$log->error("Could not prepare APC query for $queryType: ".$dbh->errstr);
+		return \%result;
+	}
+	for my $trackURLmd5 (@{$trackURLmd5s}) {
+		my $returnVal;
+		eval {
+			$sth->execute($trackURLmd5);
+			$sth->bind_columns(undef, \$returnVal);
+			$sth->fetch();
+		};
+		if ($@) {
+			$log->error("Database error: $@");
+			next;
+		}
+		$result{$trackURLmd5} = $returnVal;
+		main::DEBUGLOG && $log->is_debug && $log->debug('Current APC '.$queryType.' for trackurlmd5 ('.$trackURLmd5.') = '.$returnVal);
+	}
 	$sth->finish();
-	main::DEBUGLOG && $log->is_debug && $log->debug('Current APC '.$queryType.' for trackurlmd5 ('.$trackURLmd5.') = '.$returnVal);
-	return $returnVal;
+	return \%result;
 }
 
 sub getTrackIdForContextMenu {
@@ -1134,7 +1670,8 @@ sub getPlaylistIDforName {
 		}
 	return $playlistid || '' ;
 	} else {
-		$log->warn("Couldn't find selected playlist to link to.")
+		$log->warn("Couldn't find selected playlist to link to.");
+		return '';
 	}
 }
 
@@ -1143,9 +1680,8 @@ sub getMusicDirs {
 	my $ignoreInAudioScan = $serverPrefs->get('ignoreInAudioScan');
 	my $lmsmusicdirs = [];
 	my %musicdircount;
-	my $thisdir;
-	foreach $thisdir (@{$mediadirs}, @{$ignoreInAudioScan}) {$musicdircount{$thisdir}++}
-	foreach $thisdir (keys %musicdircount) {
+	foreach my $thisdir (@{$mediadirs}, @{$ignoreInAudioScan}) {$musicdircount{$thisdir}++}
+	foreach my $thisdir (keys %musicdircount) {
 		if ($musicdircount{$thisdir} == 1) {
 			push (@{$lmsmusicdirs}, $thisdir);
 		}
@@ -1172,10 +1708,18 @@ sub isTimeOrEmpty {
 	my $arg = shift;
 	if (!$arg || $arg eq '') {
 		return 1;
-	} elsif ($arg =~ m/^([0\s]?[0-9]|1[0-9]|2[0-4]):([0-5][0-9])\s*(P|PM|A|AM)?$/isg) {
+	} elsif ($arg =~ m/^([0\s]?[0-9]|1[0-9]|2[0-3]):([0-5][0-9])\s*(P|PM|A|AM)?$/isg) {
 		return 1;
 	}
 	return 0;
+}
+
+sub trimStringLength {
+	my ($thisString, $maxlength) = @_;
+	if (defined $thisString && (length($thisString) > $maxlength)) {
+		$thisString = substr($thisString, 0, $maxlength).'...';
+	}
+	return $thisString;
 }
 
 sub getDisplayName {'PLUGIN_POTPOURRI'}

@@ -1,0 +1,53 @@
+<style type="text/css">
+	.pptrestoretable{padding-left:20px;}
+	.pptrestoretable-item{vertical-align:middle !IMPORTANT;}
+</style>
+[% page = "PLUGIN_POTPOURRI" %]
+[% PROCESS settings/header.html %]
+
+[% PROCESS plugins/PotPourri/settings/subpage_chooser.html %]
+
+<div class="setting[% IF systemSkin == "material" %]Group[% ELSE %]Section[% END %]">
+	[% "PLUGIN_POTPOURRI_SETTINGS_BACKUPRESTORE_INTRO" | string %]
+</div>
+<br>
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_BACKUP_SELECTOUTPUTFOLDER" desc="PLUGIN_POTPOURRI_SETTINGS_BACKUP_SELECTOUTPUTFOLDER_DESC" %]
+	<input type="text" class="stdedit selectFolder" name="pref_backupoutputfolder" id="backupoutputfolder" value="[% backupoutputfolder %]" size="40"><br><br>
+	<input name="backup" type="submit" class="stdclick" value="[% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_BUTTON" | string %]">
+	[% IF backupmissingoutputfolder || backupinvalidoutputfolder || backuperror || backupsuccess %]
+	<span style="padding-left:5px;color:[% IF backupsuccess %]green[% ELSE %]red[% END %];">[% IF backupmissingoutputfolder %][% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_MISSINGOUTPUTFOLDER" | string %][% ELSIF backupinvalidoutputfolder %][% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_INVALIDOUTPUTFOLDER" | string %][% ELSIF backuperror %][% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_ERROR" | string %][% ELSE %][% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_SUCCESS" | string %][% END %]</span>
+	[% END %]
+[% END %]
+<br><br><br>
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECTFILE" desc="PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECTFILE_DESC" %]
+	<input type="text" class="stdedit selectFile_zip" name="pref_restorefile" id="restorefile" value="[% restorefilefolder %]" size="40"><br><br>
+	<input name="listrestorecontents" type="submit" class="stdclick" value="[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_LIST_BUTTON" | string %]">
+	[% IF restoremissingfile || restoreerror %]
+	<span style="padding-left:5px;color:red;">[% IF restoremissingfile == 1 %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_MISSINGFILE" | string %][% ELSIF restoremissingfile == 2 %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_NOZIPFILE" | string %][% ELSIF restoremissingfile == 3 %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_FILENOTFOUND" | string %][% ELSE %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_ERROR" | string %][% END %]</span>
+	[% END %]
+	[% IF restoresuccess %]
+	<br><br>
+	<span style="padding-left:5px;color:green;">[% IF restorerescanpending %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_SUCCESS_RESCAN_NEEDED" | string %][% ELSE %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_SUCCESS" | string %][% END %]</span>
+	[% END %]
+
+	[% IF restorearchivecontents.size %]
+	<br><br>
+	<div class="wrapper">[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECTITEMS_DESC" | string %]</div><br>
+	<table class="pptrestoretable">
+		[% FOREACH item = restorearchivecontents; idx = loop.index %]
+		<tr>
+			<td><input type="checkbox" name="pref_selected_[% idx %]" id="selected_[% idx %]" checked></td>
+			<td class="pptrestoretable-item"><label for="selected_[% idx %]">&nbsp;[% item.namespace %]</label></td>
+		</tr>
+		[% END %]
+	</table>
+	<br>
+	<input name="restore" type="submit" class="stdclick" value="[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_BUTTON" | string %]">
+	[% END %]
+	<br><br>
+[% END %]
+<br>
+
+[% PROCESS settings/footer.html %]

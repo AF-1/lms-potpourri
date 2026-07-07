@@ -14,17 +14,13 @@ use base qw(Plugins::PotPourri::Settings::BaseSettings);
 
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
-use Slim::Utils::Misc;
-use Slim::Utils::Strings;
+use Plugins::PotPourri::Common ':all';
 
 my $prefs = preferences('plugin.potpourri');
 my $log = logger('plugin.potpourri');
 
-my $plugin;
-
 sub new {
-	my $class = shift;
-	$plugin = shift;
+	my ($class, $plugin) = @_;
 	$class->SUPER::new($plugin);
 }
 
@@ -70,12 +66,12 @@ sub handler {
 			my $searchstring = trim_leadtail($paramRef->{"pref_searchstring_$n"} // '');
 			next if (($searchstring eq '') || ($searchstring =~ m|[^a-zA-Z0-9 -]|) || ($searchstring =~ m|.{61,}|));
 			my $contextmenucategoryname = trim_leadtail($paramRef->{"pref_contextmenucategoryname_$n"} // '');
-			next if ($contextmenucategoryname =~ m|[\^{}$@<>"#%?*:/\|\\]|);
+			next if ($contextmenucategoryname =~ m|[\^{}\$\@<>"#%?*:/\|\\]|);
 			my $contextmenucategorycontent = trim_leadtail($paramRef->{"pref_contextmenucategorycontent_$n"} // '');
 			my $contextmenuposition = $paramRef->{"pref_contextmenuposition_$n"};
 
 			my $titleformatname = $paramRef->{"pref_titleformatname_$n"} // '';
-			next if ($titleformatname =~ m|[\^{}$@<>"#%?*:/\|\\]|);
+			next if ($titleformatname =~ m|[\^{}\$\@<>"#%?*:/\|\\]|);
 			$titleformatname = trim_all(uc($titleformatname));
 			my $titleformatdisplaystring = trim_leadtail($paramRef->{"pref_titleformatdisplaystring_$n"} // '');
 
@@ -98,8 +94,6 @@ sub handler {
 		$prefs->set('commenttaginfoconfigmatrix', \%configmatrix);
 		$paramRef->{'commenttaginfoconfigmatrix'} = \%configmatrix;
 		main::DEBUGLOG && $log->is_debug && $log->debug('SAVED VALUES = '.Data::Dump::dump(\%configmatrix));
-
-		$result = $class->SUPER::handler($client, $paramRef);
 	}
 	# push to settings page
 
@@ -111,7 +105,7 @@ sub handler {
 		main::DEBUGLOG && $log->is_debug && $log->debug('searchstring = '.$searchstring);
 		push (@{$thisconfiglist}, {
 			'enabled' => $configmatrix->{$thisconfig}->{'enabled'},
-			'searchstring' => $configmatrix->{$thisconfig}->{'searchstring'},
+			'searchstring' => $searchstring,
 			'contextmenucategoryname' => $configmatrix->{$thisconfig}->{'contextmenucategoryname'},
 			'contextmenucategorycontent' => $configmatrix->{$thisconfig}->{'contextmenucategorycontent'},
 			'contextmenuposition' => $configmatrix->{$thisconfig}->{'contextmenuposition'},
@@ -151,19 +145,6 @@ sub handler {
 	$result = $class->SUPER::handler($client, $paramRef);
 
 	return $result;
-}
-
-sub trim_all {
-	my ($str) = @_;
-	$str =~ s/ //g;
-	return $str;
-}
-
-sub trim_leadtail {
-	my ($str) = @_;
-	$str =~ s{^\s+}{};
-	$str =~ s{\s+$}{};
-	return $str;
 }
 
 sub is_integer {

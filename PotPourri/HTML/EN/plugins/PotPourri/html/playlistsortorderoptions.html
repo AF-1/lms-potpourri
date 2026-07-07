@@ -2,7 +2,7 @@
 [% pagetitle = 'PLUGIN_POTPOURRI_WEB_PLINFO' | string; pagetitle = pagetitle _ " (" _ playlistname _ ") ";IF systemSkin == 'Classic';pagetitle = pagetitle _ "/ ";ELSE;pagetitle = pagetitle _ "> ";END;pagetitle = pagetitle _ thisname %]
 [% pwd_list = [ pagetitle ] %]
 [% PROCESS pageheader.html %]
-<style>.wrapper{padding:5px;}.titlebold{font-weight:bold};.padleft{padding-left:5px;}.pptbutton{padding:2px;}.btncenter{text-align:center;}.filler{height:15px;}.warning{color:red;}</style>
+<style>.wrapper{padding:5px;}.titlebold{font-weight:bold;}.padleft{padding-left:5px;}.pptbutton{padding:2px;}.btncenter{text-align:center;}.filler{height:15px;}.warning{color:red;}</style>
 <br>
 <div class="wrapper">
 	<span class="titlebold">[% "PLUGIN_POTPOURRI_PL_SORTORDER_OPTIONS_HEADER" | string %]</span>
@@ -63,7 +63,7 @@
 
 [% IF orderchanged %]
 <script type="text/javascript">
-		setTimeout(location.href = "[% webroot %]clixmlbrowser/clicmd=browselibrary+items&linktitle=SAVED_PLAYLISTS&mode=playlists/?player=[% playerURI %]", 500);
+	setTimeout(function() { location.href = "[% webroot %]clixmlbrowser/clicmd=browselibrary+items&linktitle=SAVED_PLAYLISTS&mode=playlists/?player=[% playerURI %]"; }, 500);
 </script>
 [% END %]
 

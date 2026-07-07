@@ -18,11 +18,8 @@ use Slim::Utils::Log;
 my $log = logger('plugin.potpourri');
 my $prefs = preferences('plugin.potpourri');
 
-my $plugin;
-
 sub new {
-	my $class = shift;
-	$plugin = shift;
+	my ($class, $plugin) = @_;
 	$class->SUPER::new($plugin,1);
 }
 
@@ -48,24 +45,14 @@ sub pages {
 }
 
 sub prefs {
-	return ($prefs, qw(toplevelplaylistname enablescheduledclientspoweroff powerofftime appitem displaytrackid));
+	return ($prefs, qw(toplevelplaylistname enablescheduledclientspoweroff powerofftime appitem displaytrackid contextmenusimilartracktitlesbysameartist));
 }
 
 sub handler {
 	my ($class, $client, $paramRef) = @_;
-	my $result = undef;
-	my $callHandler = 1;
-	if ($paramRef->{'saveSettings'}) {
-		$result = $class->SUPER::handler($client, $paramRef);
-		$callHandler = 0;
-	}
+	my $result = $class->SUPER::handler($client, $paramRef);
 	if ($paramRef->{'purgedeadtrackspersistent'}) {
-		if ($callHandler) {
-			$result = $class->SUPER::handler($client, $paramRef);
-		}
 		Plugins::PotPourri::Plugin::purgeDeadTracksPersistent();
-	} elsif ($callHandler) {
-		$result = $class->SUPER::handler($client, $paramRef);
 	}
 	return $result;
 }
@@ -73,7 +60,6 @@ sub handler {
 sub beforeRender {
 	my ($class, $paramRef) = @_;
 	my $toplevelplaylistname = $prefs->get('toplevelplaylistname') || 'none';
-	my @allplaylists = ();
 	my $queryresult = Slim::Control::Request::executeRequest(undef, ['playlists', '0', '500']);
 	my $playlistcount = $queryresult->getResult('count');
 

@@ -14,18 +14,13 @@ use base qw(Plugins::PotPourri::Settings::BaseSettings);
 
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
-use Slim::Utils::Misc;
-use Slim::Utils::Strings;
-use Slim::Utils::Strings qw(string cstring);
+use Plugins::PotPourri::Common ':all';
 
 my $prefs = preferences('plugin.potpourri');
 my $log = logger('plugin.potpourri');
 
-my $plugin;
-
 sub new {
-	my $class = shift;
-	$plugin = shift;
+	my ($class, $plugin) = @_;
 	$class->SUPER::new($plugin);
 }
 
@@ -57,14 +52,13 @@ sub prefs {
 sub handler {
 	my ($class, $client, $paramRef) = @_;
 	my $result = undef;
-	my $callHandler = 1;
 	if ($paramRef->{'saveSettings'}) {
 		my @exportbasefilepathmatrix;
 		my %lmsbasepathDone;
 
 		for (my $n = 0; $n <= 10; $n++) {
-			my $lmsbasepath = trim($paramRef->{"pref_lmsbasepath_$n"} // '');
-			my $substitutebasepath = trim($paramRef->{"pref_substitutebasepath_$n"} // '');
+			my $lmsbasepath = trim_leadtail($paramRef->{"pref_lmsbasepath_$n"} // '');
+			my $substitutebasepath = trim_leadtail($paramRef->{"pref_substitutebasepath_$n"} // '');
 
 			if ((length($lmsbasepath) > 0) && !$lmsbasepathDone{$lmsbasepath} && (length($substitutebasepath) > 0)) {
 				push(@exportbasefilepathmatrix, {lmsbasepath => $lmsbasepath, substitutebasepath => $substitutebasepath});
@@ -73,18 +67,10 @@ sub handler {
 		}
 		$prefs->set('exportbasefilepathmatrix', \@exportbasefilepathmatrix);
 		$paramRef->{exportbasefilepathmatrix} = \@exportbasefilepathmatrix;
-
-		$result = $class->SUPER::handler($client, $paramRef);
-		$callHandler = 0;
 	}
 	if ($paramRef->{'export'}) {
-		if ($callHandler) {
-			$paramRef->{'saveSettings'} = 1;
-			$result = $class->SUPER::handler($client, $paramRef);
-		}
+		$paramRef->{'saveSettings'} = 1;
 		Plugins::PotPourri::Plugin::exportPlaylistsToFiles($paramRef->{'pref_exportPLid'});
-	} elsif ($callHandler) {
-		$result = $class->SUPER::handler($client, $paramRef);
 	}
 
 	# push to settings page
@@ -129,13 +115,6 @@ sub beforeRender {
 		$paramRef->{playlistcount} = $playlistcount;
 		$paramRef->{allplaylists} = \@sortedarray;
 	}
-}
-
-sub trim {
-	my ($str) = @_;
-	$str =~ s{^\s+}{};
-	$str =~ s{\s+$}{};
-	return $str;
 }
 
 1;

@@ -12,12 +12,10 @@ use utf8;
 
 use Slim::Utils::Prefs;
 use Slim::Utils::Log;
-use Slim::Schema;
 use Plugins::PotPourri::Common ':all';
 
 my $prefs = preferences('plugin.potpourri');
-my $serverPrefs = preferences('server');
-my $log = Slim::Utils::Log::logger('plugin.potpourri');
+my $log = logger('plugin.potpourri');
 
 sub initPlugin {
 	main::DEBUGLOG && $log->is_debug && $log->debug('Importer module init');

@@ -53,6 +53,14 @@
 [% END %]
 <br>
 
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST" desc="PLUGIN_POTPOURRI_SETTINGS_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST_DESC" %]
+	<select class="stdedit" name="pref_contextmenusimilartracktitlesbysameartist" id="contextmenusimilartracktitlesbysameartist">
+		<option [% IF NOT prefs.contextmenusimilartracktitlesbysameartist %]selected [% END %]value="0">[% 'NO' | getstring %]</option>
+		<option [% IF prefs.contextmenusimilartracktitlesbysameartist %]selected [% END %]value="1">[% 'YES' | getstring %]</option>
+	</select>
+[% END %]
+<br>
+
 <hr><br>
 [% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_PURGEDEADTRACKS_PERSISTENT" desc="PLUGIN_POTPOURRI_SETTINGS_PURGEDEADTRACKS_PERSISTENT_DESC" %]
 	<input style="margin-top:-1px;" name="purgedeadtrackspersistent" type="submit" class="stdclick" onClick="inprogress('purgedeadtrackspersistentstatus');" value="[% "PLUGIN_POTPOURRI_SETTINGS_PURGEDEADTRACKS_PERSISTENT_BUTTON" | string %]">

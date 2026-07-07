@@ -1,0 +1,77 @@
+[% pagetitle = 'PLUGIN_POTPOURRI_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST' | string %]
+[% pwd_list = [ pagetitle ] %]
+[% PROCESS pageheader.html %]
+<style>
+@charset "UTF-8";
+.pptwrapper {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+}
+.tracktitle {
+	font-size: [% IF systemSkin != 'Classic' %]12[% ELSE %]11[% END %]px;
+}
+.secondline {
+	display: inline-block;
+	margin-top: 2px;
+	font-size: [% IF systemSkin != 'Classic' %]11[% ELSE %]10[% END %]px;
+}
+.ppttextwrapper {
+	padding-left: 20px;
+	vertical-align: middle;
+}
+.underline-on-hover:hover {text-decoration: underline;}.selectorMarker,.mouseOver{cursor:default !important;}
+</style>
+[% WRAPPER contentcontainer %]
+	[% odd = 1 %]
+	[% IF trackcount == 0 %]
+		[%- WRAPPER contentitem %]
+		<span>[% "PLUGIN_POTPOURRI_CONTEXTMENU_NOSIMILARTRACKTITLESFOUND" | string %]</span>
+		[% END %]
+	[% ELSE %]
+		[% IF trackcount > 1 %]
+			[% BLOCK controls_allsongs %]
+				[% WRAPPER addlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=add&amp;actiontrackids=[% alltrackids %]&amp;player=[% playerURI %]"[% END %]
+				[% IF systemSkin != 'Classic' %]
+				[% WRAPPER insertlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=insert&amp;actiontrackids=[% alltrackids %]&amp;player=[% playerURI %]"[% END %]
+				[% END %]
+				[% WRAPPER playlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=load&amp;actiontrackids=[% alltrackids %]&amp;player=[% playerURI %]"[% END %]
+			[% END %]
+			[%- WRAPPER contentitem controls='controls_allsongs' %]
+			<span class="pptwrapper">
+				<span class="flexitem"><img src="[% webroot %]plugins/PotPourri/html/images/allsongs.png" width="35" height="35"></span>
+				<span class="flexitem ppttextwrapper">
+					<span class="tracktitle">[% "PLUGIN_POTPOURRI_MENUS_TRACKS_ALLSONGS" | string %] ([% trackcount %])</span>
+				</span>
+			</span>
+			[% END %]
+			[% odd = (not odd) %]
+		[% END %]
+
+		[% FOREACH similartrack IN similartracktitles %]
+			[% BLOCK controls %]
+				[% WRAPPER addlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=add&amp;actiontrackids=[% similartrack.trackid %]&amp;player=[% playerURI %]"[% END %]
+				[% IF systemSkin != 'Classic' %]
+				[% WRAPPER insertlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=insert&amp;actiontrackids=[% similartrack.trackid %]&amp;player=[% playerURI %]"[% END %]
+				[% END %]
+				[% WRAPPER playlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=load&amp;actiontrackids=[% similartrack.trackid %]&amp;player=[% playerURI %]"[% END %]
+			[% END %]
+			[%- WRAPPER contentitem controls='controls' %]
+			<span class="pptwrapper">
+				<span class="flexitem playlistcover">
+					<img [% IF similartrack.artworkid %]src="/music/[% similartrack.artworkid %]/cover_350x35_o" srcset="/music/[% similartrack.artworkid %]/cover_100x100_o 2x"[% ELSE %]src="[% webroot %]plugins/PotPourri/html/images/coverplaceholder.png"[% END %] width="35" height="35" onload="resize(this, 35)">
+				</span>
+				<span class="flexitem ppttextwrapper">
+					<a class="tracktitle underline-on-hover" href="[% webroot %]songinfo.html?item=[% similartrack.trackid %]&amp;player=[% playerURI %]">[% similartrack.tracktitle %]</a>[% similartrack.ratingtext %]
+					<br>
+					<a class="secondline underline-on-hover" href="[% webroot %]clixmlbrowser/clicmd=browselibrary+items&mode=albums&artist_id=[% similartrack.artistID %]&linktitle=[% pagetitle %]&player=[% playerURI %]">[% similartrack.artistname %]</a> &#x2022;
+					<a class="secondline underline-on-hover" href="[% webroot %]clixmlbrowser/clicmd=browselibrary+items&mode=tracks&album_id=[% similartrack.albumID %]&linktitle=[% pagetitle %]&player=[% playerURI %]">[% similartrack.albumname %]</a>
+				</span>
+			</span>
+			[% END %]
+		[% odd = (not odd) %]
+		[% END %]
+	[% END %]
+[% END %]
+
+[% PROCESS pagefooter.html %]

@@ -130,13 +130,13 @@ PLUGIN_POTPOURRI_PL_SORTORDER_SUCCESS
 PLUGIN_POTPOURRI_PL_SORTORDER_FAILED
 	EN	Reordering playlist tracks failed
 
-PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER
+PLUGIN_POTPOURRI_CLIENTPL_CHANGEORDER
 	EN	Change playlist track order of client:
 
-PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE
+PLUGIN_POTPOURRI_CLIENTPL_CHANGEORDER_DONE
 	EN	Finished sorting by
 
-PLUGIN_POTPOURI_CLIENTPL_CHANGEORDER_DONE_INFO
+PLUGIN_POTPOURRI_CLIENTPL_CHANGEORDER_DONE_INFO
 	EN	You can refresh your client's playlist now or wait for it to auto-refresh.
 
 PLUGIN_POTPOURRI_STARTVOLUME
@@ -229,6 +229,33 @@ PLUGIN_POTPOURRI_SETTINGS_DISPLAYTRACKID
 
 PLUGIN_POTPOURRI_SETTINGS_DISPLAYTRACKID_DESC
 	EN	Display the LMS database ID of a track at the bottom of its context menu.<br>Skins that use the <i>More Info</i> submenu will display the track ID at the bottom of that menu.
+
+PLUGIN_POTPOURRI_SETTINGS_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST
+	EN	Show tracks with similar titles by the same artist in track context menu
+
+PLUGIN_POTPOURRI_SETTINGS_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST_DESC
+	EN	Displays an item in the track context menu with a list of track titles by the same artist that are similar to the one currently playing.
+
+PLUGIN_POTPOURRI_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST
+	EN	Tracks with similar titles by the same artist
+
+PLUGIN_POTPOURRI_CONTEXTMENU_NOSIMILARTRACKTITLESFOUND
+	EN	No tracks with similar titles found for this artist.
+
+PLUGIN_POTPOURRI_MENUS_TRACKS_ALLSONGS
+	EN	All songs
+
+PLUGIN_POTPOURRI_MENUS_ACTIONMENU_PLAYNOW
+	EN	Play now
+
+PLUGIN_POTPOURRI_MENUS_ACTIONMENU_PLAYNEXT
+	EN	Play next
+
+PLUGIN_POTPOURRI_MENUS_ACTIONMENU_APPEND
+	EN	Append to queue
+
+PLUGIN_POTPOURRI_MENUS_ACTIONMENU_MOREINFO
+	EN	More information
 
 PLUGIN_POTPOURRI_SETTINGS_PURGEDEADTRACKS_PERSISTENT
 	EN	Remove dead tracks from<br>LMS tracks_persistent table
@@ -364,3 +391,64 @@ PLUGIN_POTPOURRI_SETTINGS_ABOUT
 
 PLUGIN_POTPOURRI_SETTINGS_ABOUT_TEXT
 	EN	Please see the <a href="https://github.com/AF-1/lms-potpourri/wiki/Comment-tag-info"><b>GitHub wiki</b></a> for more information.
+
+
+PLUGIN_POTPOURRI_SETTINGS_BACKUPRESTORESETTINGS
+	EN	Backup / Restore Settings
+
+PLUGIN_POTPOURRI_SETTINGS_BACKUP_SELECTOUTPUTFOLDER
+	EN	Select a backup output folder
+
+PLUGIN_POTPOURRI_SETTINGS_BACKUP_SELECTOUTPUTFOLDER_DESC
+	EN	Select a folder where you want to save the archive with the preferences to.
+
+PLUGIN_POTPOURRI_SETTINGS_BACKUP_BUTTON
+	EN	Backup now
+
+PLUGIN_POTPOURRI_SETTINGS_BACKUP_MISSINGOUTPUTFOLDER
+	EN	You have to select a folder first!
+
+PLUGIN_POTPOURRI_SETTINGS_BACKUP_INVALIDOUTPUTFOLDER
+	EN	The selected folder does not exist.
+
+PLUGIN_POTPOURRI_SETTINGS_BACKUP_SUCCESS
+	EN	Backup created successfully.
+
+PLUGIN_POTPOURRI_SETTINGS_BACKUP_ERROR
+	EN	Backup failed. Please check the server log for details.
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECTFILE
+	EN	Select a backup file to restore from
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECTFILE_DESC
+	EN	Select a backup file (created with <i>PotPourri</i>) to restore your backup files from.
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_BUTTON
+	EN	Restore now
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_MISSINGFILE
+	EN	You have to select a file first!
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_NOZIPFILE
+	EN	Please select a valid ZIP file created with <i>PotPourri</i> !
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_FILENOTFOUND
+	EN	The selected file could not be found.
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_SUCCESS
+	EN	Preferences restored. Please restart Lyrion Music Server now for the changes to take effect.
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_SUCCESS_RESCAN_NEEDED
+	EN	Preferences restored. Please restart Lyrion Music Server now.<br>⚠️ Some of the restored settings require a media library rescan - please trigger one manually afterwards: LMS Settings > Basic Settings > Rescan Media Library > Clear library and rescan everything.
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_ERROR
+	EN	Restore failed. Please check the server log for details.
+
+PLUGIN_POTPOURRI_SETTINGS_BACKUPRESTORE_INTRO
+	EN	<b>Use at your own risk.</b> This is an experimental feature. Please create your own backup of all relevant files beforehand.<br><br>This backs up and restores the preference (<i>.prefs</i>) files of LMS and its plugins. Database files (<i>.db</i>) are <b>not</b> included as they can be very large. This is a preferences backup, not a full library/database backup.<br><br>After a restore, you need to <b>restart</b> Lyrion Music Server manually for the changes to take effect. If any of the restored settings require a media library rescan, you'll be told so after the restore and need to trigger one manually afterwards.
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_LIST_BUTTON
+	EN	List contents
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECTITEMS_DESC
+	EN	Select which preference files you want to restore:

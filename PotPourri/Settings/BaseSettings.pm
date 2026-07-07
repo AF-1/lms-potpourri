@@ -17,18 +17,12 @@ use base qw(Slim::Web::Settings);
 
 use Slim::Utils::Log;
 use Slim::Utils::Prefs;
-use Slim::Utils::Misc;
-use Slim::Utils::Strings qw(string);
 
-my $prefs = preferences('plugin.potpourri');
-my $log = logger('plugin.potpourri');
-
-my $plugin;
 my %subPages = ();
 
 sub new {
 	my $class = shift;
-	$plugin = shift;
+	shift;
 	my $default = shift;
 
 	if (!defined($default) || !$default) {
