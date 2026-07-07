@@ -32,6 +32,10 @@ PotPourri
 
 - Purge dead tracks from the *tracks_persistent* table.
 
+- Track context menu item: show tracks with similar titles by the same artist (e.g. live or remix version).
+
+- Back up LMS and plugin preference (.prefs) files. Restore settings by selecting preference files from a backup.
+
 - …
 <br><br><br>
 
