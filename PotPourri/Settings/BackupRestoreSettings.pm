@@ -52,6 +52,13 @@ sub handler {
 	my ($class, $client, $paramRef) = @_;
 	my $result;
 
+	if (defined $paramRef->{'pref_restoreskipprefs'}) {
+		my $restoreSkipPrefs = $paramRef->{'pref_restoreskipprefs'};
+		$restoreSkipPrefs =~ s/^\s+|\s+$//g;
+		$prefs->set('restoreskipprefs', $restoreSkipPrefs);
+	}
+	$paramRef->{'restoreskipprefs'} = $prefs->get('restoreskipprefs');
+
 	if ($paramRef->{'backup'}) {
 		my $selectedfolder = $paramRef->{'pref_backupoutputfolder'};
 		$paramRef->{'backupoutputfolder'} = $selectedfolder;
@@ -63,9 +70,7 @@ sub handler {
 			$paramRef->{'backupinvalidoutputfolder'} = 1;
 		} else {
 			$prefs->set('backupoutputfolder', $selectedfolder);
-			if (Plugins::PotPourri::Plugin::createBackup()) {
-				$paramRef->{'backupsuccess'} = 1;
-			} else {
+			unless (Plugins::PotPourri::Plugin::createBackup()) {
 				$paramRef->{'backuperror'} = 1;
 			}
 		}
@@ -91,13 +96,15 @@ sub handler {
 				for (my $i = 0; $i < scalar @{$archiveContents}; $i++) {
 					$selectedNamespaces{$archiveContents->[$i]->{'namespace'}} = 1 if $paramRef->{"pref_selected_$i"};
 				}
-				my ($restoreOk, $rescanPending) = Plugins::PotPourri::Plugin::restoreFromBackup(\%selectedNamespaces);
-				if ($restoreOk) {
-					$paramRef->{'restoresuccess'} = 1;
-					$paramRef->{'restorerescanpending'} = $rescanPending;
+				if (%selectedNamespaces) {
+					my ($restoreOk, undef) = Plugins::PotPourri::Plugin::restoreFromBackup(\%selectedNamespaces);
+					unless ($restoreOk) {
+						$paramRef->{'restoreerror'} = 1;
+						# keep showing the list on failure so the user can retry without listing again
+						$paramRef->{'restorearchivecontents'} = $archiveContents;
+					}
 				} else {
-					$paramRef->{'restoreerror'} = 1;
-					# keep showing the list on failure so the user can retry without listing again
+					# nothing selected - just display the list again
 					$paramRef->{'restorearchivecontents'} = $archiveContents;
 				}
 			} else {
@@ -108,6 +115,12 @@ sub handler {
 
 	$result = $class->SUPER::handler($client, $paramRef);
 	return $result;
+}
+
+sub beforeRender {
+	my ($class, $paramRef) = @_;
+	$paramRef->{'squeezebox_server_jsondatareq'} = '/jsonrpc.js';
+	$paramRef->{'activebackuprestore'} = 1 if $prefs->get('status_backuprestore');
 }
 
 1;

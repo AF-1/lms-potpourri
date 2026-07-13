@@ -1,6 +1,15 @@
 <style type="text/css">
 	.pptrestoretable{padding-left:20px;}
 	.pptrestoretable-item{vertical-align:middle !IMPORTANT;}
+	.pptbackuprestorestatuswrapper{padding-left:274px;}
+	#pptbackuprestoreprogresswrapper{display:none;width:200px;margin:8px 0 10px 274px;background-color:gray;}
+	#pptbackuprestoreprogressbar{width:0%;height:4px;background-color:#04AA6D;}
+	:root{--ppt-status-main-color:red;--ppt-status-text-shadow-color:rgba(0,0,0,0)}
+	.pptstatus{color:var(--ppt-status-main-color) !important;font-size:calc(1em + 2px);}
+	.pptsuccess{color:green !important;font-size:calc(1em + 2px);}
+	.ppterror{color:red !important;font-size:calc(1em + 2px);}
+	.pptscanstatus:after{font-size:180%;content:' .';animation:pptdots 1.8s steps(5,end)infinite}
+	@keyframes pptdots{0%,20%{color:var(--ppt-status-text-shadow-color);text-shadow:.25em 0 0 var(--ppt-status-text-shadow-color),.5em 0 0 var(--ppt-status-text-shadow-color)}40%{color:var(--ppt-status-main-color);text-shadow:.25em 0 0 var(--ppt-status-text-shadow-color),.5em 0 0 var(--ppt-status-text-shadow-color)}60%{text-shadow:.25em 0 0 var(--ppt-status-main-color),.5em 0 0 var(--ppt-status-text-shadow-color)}80%,100%{text-shadow:.25em 0 0 var(--ppt-status-main-color),.5em 0 0 var(--ppt-status-main-color)}}
 </style>
 [% page = "PLUGIN_POTPOURRI" %]
 [% PROCESS settings/header.html %]
@@ -12,42 +21,174 @@
 </div>
 <br>
 
+<div class="pptbackuprestorestatuswrapper">
+	<span id="pptbackuprestorestatus"></span>
+</div>
+<div id="pptbackuprestoreprogresswrapper"><div id="pptbackuprestoreprogressbar"></div></div>
+<br>
+
 [% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_BACKUP_SELECTOUTPUTFOLDER" desc="PLUGIN_POTPOURRI_SETTINGS_BACKUP_SELECTOUTPUTFOLDER_DESC" %]
 	<input type="text" class="stdedit selectFolder" name="pref_backupoutputfolder" id="backupoutputfolder" value="[% backupoutputfolder %]" size="40"><br><br>
-	<input name="backup" type="submit" class="stdclick" value="[% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_BUTTON" | string %]">
-	[% IF backupmissingoutputfolder || backupinvalidoutputfolder || backuperror || backupsuccess %]
-	<span style="padding-left:5px;color:[% IF backupsuccess %]green[% ELSE %]red[% END %];">[% IF backupmissingoutputfolder %][% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_MISSINGOUTPUTFOLDER" | string %][% ELSIF backupinvalidoutputfolder %][% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_INVALIDOUTPUTFOLDER" | string %][% ELSIF backuperror %][% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_ERROR" | string %][% ELSE %][% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_SUCCESS" | string %][% END %]</span>
+	<input name="backup" type="submit" class="stdclick" id="pptbackupbutton" value="[% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_BUTTON" | string %]"[% IF activebackuprestore %] disabled[% END %]>
+	[% IF backupmissingoutputfolder || backupinvalidoutputfolder || backuperror %]
+	<span style="padding-left:5px;color:red;">[% IF backupmissingoutputfolder %][% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_MISSINGOUTPUTFOLDER" | string %][% ELSIF backupinvalidoutputfolder %][% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_INVALIDOUTPUTFOLDER" | string %][% ELSE %][% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_ERROR" | string %][% END %]</span>
 	[% END %]
 [% END %]
 <br><br><br>
 
 [% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECTFILE" desc="PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECTFILE_DESC" %]
 	<input type="text" class="stdedit selectFile_zip" name="pref_restorefile" id="restorefile" value="[% restorefilefolder %]" size="40"><br><br>
-	<input name="listrestorecontents" type="submit" class="stdclick" value="[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_LIST_BUTTON" | string %]">
+	<input name="listrestorecontents" type="submit" class="stdclick" id="pptlistrestorebutton" value="[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_LIST_BUTTON" | string %]"[% IF activebackuprestore %] disabled[% END %]>
+	[% IF restorearchivecontents.size %]<input type="button" class="stdclick" id="pptselectallbutton" style="margin-left:10px;" value="[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_DESELECT_ALL" | string %]" onclick="pptToggleSelectAll()">[% END %]
+
 	[% IF restoremissingfile || restoreerror %]
 	<span style="padding-left:5px;color:red;">[% IF restoremissingfile == 1 %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_MISSINGFILE" | string %][% ELSIF restoremissingfile == 2 %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_NOZIPFILE" | string %][% ELSIF restoremissingfile == 3 %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_FILENOTFOUND" | string %][% ELSE %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_ERROR" | string %][% END %]</span>
-	[% END %]
-	[% IF restoresuccess %]
-	<br><br>
-	<span style="padding-left:5px;color:green;">[% IF restorerescanpending %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_SUCCESS_RESCAN_NEEDED" | string %][% ELSE %][% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_SUCCESS" | string %][% END %]</span>
 	[% END %]
 
 	[% IF restorearchivecontents.size %]
 	<br><br>
 	<div class="wrapper">[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECTITEMS_DESC" | string %]</div><br>
-	<table class="pptrestoretable">
+	<table class="pptrestoretable" id="pptrestoretable">
 		[% FOREACH item = restorearchivecontents; idx = loop.index %]
 		<tr>
-			<td><input type="checkbox" name="pref_selected_[% idx %]" id="selected_[% idx %]" checked></td>
-			<td class="pptrestoretable-item"><label for="selected_[% idx %]">&nbsp;[% item.namespace %]</label></td>
+			<td><input type="checkbox" name="pref_selected_[% idx %]" id="selected_[% idx %]" checked onclick="pptUpdateSelectAllButton()"></td>
+			<td class="pptrestoretable-item"><label for="selected_[% idx %]">&nbsp;[% item.label ? item.label : item.namespace %]</label></td>
 		</tr>
 		[% END %]
 	</table>
 	<br>
-	<input name="restore" type="submit" class="stdclick" value="[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_BUTTON" | string %]">
+	<input name="restore" type="submit" class="stdclick" id="pptrestorebutton" value="[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_BUTTON" | string %]"[% IF activebackuprestore %] disabled[% END %]>
 	[% END %]
-	<br><br>
 [% END %]
-<br>
+<br><br>
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_RESTORE_SKIPPREFS" desc="PLUGIN_POTPOURRI_SETTINGS_RESTORE_SKIPPREFS_DESC" %]
+<input type="text" class="stdedit" name="pref_restoreskipprefs" id="restoreskipprefs" value="[% restoreskipprefs %]" placeholder='[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_SKIPPREFS_PLACEHOLDER" | string | html %]' size="60">
+[% END %]
+<br><br><br>
 
 [% PROCESS settings/footer.html %]
+
+<script type="text/javascript">
+	var pptStatusInterval;
+
+	function pptSetButtonsDisabled(disabled) {
+		document.getElementById('pptbackupbutton').disabled = disabled;
+		document.getElementById('pptlistrestorebutton').disabled = disabled;
+		var restoreButton = document.getElementById('pptrestorebutton');
+		if (restoreButton) {
+			restoreButton.disabled = disabled;
+		}
+	}
+
+	function pptShowStatus(text, cssClasses) {
+		var el = document.getElementById('pptbackuprestorestatus');
+		el.innerHTML = text;
+		el.classList.remove('pptstatus', 'pptscanstatus', 'pptsuccess', 'ppterror');
+		if (cssClasses) {
+			cssClasses.split(' ').forEach(function(c) { el.classList.add(c); });
+		}
+	}
+
+	function pptToggleSelectAll() {
+		var checkboxes = document.querySelectorAll('#pptrestoretable input[type="checkbox"]');
+		var allChecked = true;
+		for (var i = 0; i < checkboxes.length; i++) {
+			if (!checkboxes[i].checked) {
+				allChecked = false;
+				break;
+			}
+		}
+		for (var i = 0; i < checkboxes.length; i++) {
+			checkboxes[i].checked = !allChecked;
+		}
+		pptUpdateSelectAllButton();
+	}
+
+function pptUpdateSelectAllButton() {
+		var checkboxes = document.querySelectorAll('#pptrestoretable input[type="checkbox"]');
+		var allChecked = true;
+		var anyChecked = false;
+		for (var i = 0; i < checkboxes.length; i++) {
+			if (checkboxes[i].checked) {
+				anyChecked = true;
+			} else {
+				allChecked = false;
+			}
+		}
+		document.getElementById('pptselectallbutton').value = allChecked ? '[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_DESELECT_ALL" | string %]' : '[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECT_ALL" | string %]';
+		var restoreButton = document.getElementById('pptrestorebutton');
+		if (restoreButton) {
+			restoreButton.disabled = !anyChecked;
+		}
+	}
+
+	function pptGetPrefVal(prefName, val) {
+		const serverjsonurl = "[% squeezebox_server_jsondatareq %]";
+		let prefValue = (val !== undefined) ? val : '?';
+		let vsBody = JSON.stringify({
+			id: 1,
+			method: 'slim.request',
+			params: ['', ['pref', 'plugin.potpourri:' + prefName, prefValue]]
+		});
+
+		async function pptGetPrefValFromServer() {
+			let response = await fetch(serverjsonurl, {
+				method: "post",
+				headers: { "Content-Type": "application/json", "Origin": window.location.hostname },
+				body: vsBody
+			});
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			return await response.json();
+		}
+
+		pptGetPrefValFromServer().then((jsonData) => {
+			let value = Object.values(jsonData.result)[0];
+
+			if (prefName == 'status_backuprestore') {
+				if (value == 0) {
+					pptSetButtonsDisabled(false);
+					document.getElementById('pptbackuprestoreprogresswrapper').style.display = 'none';
+					clearInterval(pptStatusInterval);
+					pptGetPrefVal('backuprestoreresult');
+				} else {
+					pptSetButtonsDisabled(true);
+					pptShowStatus(value == 1 ? '[% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_INPROGRESS" | string %]' : '[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_INPROGRESS" | string %]', 'pptstatus pptscanstatus');
+					document.getElementById('pptbackuprestoreprogresswrapper').style.display = 'block';
+					pptGetPrefVal('backuprestoreprogresspercentage');
+				}
+			} else if (prefName == 'backuprestoreprogresspercentage') {
+				document.getElementById('pptbackuprestoreprogressbar').style.width = value + '%';
+			} else if (prefName == 'backuprestoreresult') {
+				if (value == 1) {
+					pptShowStatus('[% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_SUCCESS" | string %]', 'pptsuccess');
+					setTimeout(pptGetPrefVal, 3000, 'backuprestoreresult', '0');
+				} else if (value == 2) {
+					pptShowStatus('[% "PLUGIN_POTPOURRI_SETTINGS_BACKUP_ERROR" | string %]', 'ppterror');
+					setTimeout(pptGetPrefVal, 3000, 'backuprestoreresult', '0');
+				} else if (value == 3) {
+					pptShowStatus('[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_SUCCESS" | string %]', 'pptsuccess');
+					setTimeout(pptGetPrefVal, 3000, 'backuprestoreresult', '0');
+				} else if (value == 4) {
+					pptShowStatus('[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_ERROR" | string %]', 'ppterror');
+					setTimeout(pptGetPrefVal, 3000, 'backuprestoreresult', '0');
+				} else if (value == 5) {
+					pptShowStatus('[% "PLUGIN_POTPOURRI_SETTINGS_RESTORE_SUCCESS_RESCAN_NEEDED" | string %]', 'pptsuccess');
+					setTimeout(pptGetPrefVal, 3000, 'backuprestoreresult', '0');
+				}
+			}
+		}).catch(function(error) {
+			console.log(error);
+		});
+	}
+
+	window.addEventListener("load", () => {
+		if (document.getElementById('pptrestoretable')) {
+			pptUpdateSelectAllButton();
+		}
+		pptGetPrefVal('status_backuprestore');
+		pptStatusInterval = setInterval(function() { pptGetPrefVal('status_backuprestore'); }, 3000);
+	});
+</script>

@@ -45,7 +45,7 @@ sub pages {
 }
 
 sub prefs {
-	return ($prefs, qw(toplevelplaylistname enablescheduledclientspoweroff powerofftime appitem displaytrackid contextmenusimilartracktitlesbysameartist));
+	return ($prefs, qw(toplevelplaylistname enablescheduledclientspoweroff powerofftime appitem displaytrackid contextmenusimilartracktitlesbysameartist contextmenusimilartracktitles));
 }
 
 sub handler {

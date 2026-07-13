@@ -1,4 +1,4 @@
-[% pagetitle = 'PLUGIN_POTPOURRI_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST' | string %]
+[% pagetitle = (pagetitlestringkey || 'PLUGIN_POTPOURRI_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST') | string %]
 [% pwd_list = [ pagetitle ] %]
 [% PROCESS pageheader.html %]
 <style>
@@ -22,6 +22,7 @@
 }
 .underline-on-hover:hover {text-decoration: underline;}.selectorMarker,.mouseOver{cursor:default !important;}
 </style>
+<br>
 [% WRAPPER contentcontainer %]
 	[% odd = 1 %]
 	[% IF trackcount == 0 %]

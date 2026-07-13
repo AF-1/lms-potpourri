@@ -242,6 +242,18 @@ PLUGIN_POTPOURRI_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST
 PLUGIN_POTPOURRI_CONTEXTMENU_NOSIMILARTRACKTITLESFOUND
 	EN	No tracks with similar titles found for this artist.
 
+PLUGIN_POTPOURRI_SETTINGS_CONTEXTMENU_SIMILARTRACKTITLES
+	EN	Show tracks with similar titles (any artist) in track context menu
+
+PLUGIN_POTPOURRI_SETTINGS_CONTEXTMENU_SIMILARTRACKTITLES_DESC
+	EN	Displays an item in the track context menu with a list of track titles - regardless of artist - that are similar to the one currently playing. Useful for finding cover versions or alternate versions of a track.
+
+PLUGIN_POTPOURRI_CONTEXTMENU_SIMILARTRACKTITLES
+	EN	Tracks with similar titles by any artist
+
+PLUGIN_POTPOURRI_CONTEXTMENU_NOSIMILARTRACKTITLESFOUND_ANYARTIST
+	EN	No tracks with similar titles found.
+
 PLUGIN_POTPOURRI_MENUS_TRACKS_ALLSONGS
 	EN	All songs
 
@@ -400,7 +412,7 @@ PLUGIN_POTPOURRI_SETTINGS_BACKUP_SELECTOUTPUTFOLDER
 	EN	Select a backup output folder
 
 PLUGIN_POTPOURRI_SETTINGS_BACKUP_SELECTOUTPUTFOLDER_DESC
-	EN	Select a folder where you want to save the archive with the preferences to.
+	EN	Select a folder where you want to save the backup archive to.
 
 PLUGIN_POTPOURRI_SETTINGS_BACKUP_BUTTON
 	EN	Backup now
@@ -436,19 +448,46 @@ PLUGIN_POTPOURRI_SETTINGS_RESTORE_FILENOTFOUND
 	EN	The selected file could not be found.
 
 PLUGIN_POTPOURRI_SETTINGS_RESTORE_SUCCESS
-	EN	Preferences restored. Please restart Lyrion Music Server now for the changes to take effect.
+	EN	Restore completed. Please restart Lyrion Music Server now for the changes to take effect.
 
 PLUGIN_POTPOURRI_SETTINGS_RESTORE_SUCCESS_RESCAN_NEEDED
-	EN	Preferences restored. Please restart Lyrion Music Server now.<br>⚠️ Some of the restored settings require a media library rescan - please trigger one manually afterwards: LMS Settings > Basic Settings > Rescan Media Library > Clear library and rescan everything.
+	EN	Restore completed. Please restart Lyrion Music Server now for the changes to take effect.<br>⚠️ Some of the restored settings require a media library rescan. LMS will remind you to do this after the restart.
 
 PLUGIN_POTPOURRI_SETTINGS_RESTORE_ERROR
 	EN	Restore failed. Please check the server log for details.
 
 PLUGIN_POTPOURRI_SETTINGS_BACKUPRESTORE_INTRO
-	EN	<b>Use at your own risk.</b> This is an experimental feature. Please create your own backup of all relevant files beforehand.<br><br>This backs up and restores the preference (<i>.prefs</i>) files of LMS and its plugins. Database files (<i>.db</i>) are <b>not</b> included as they can be very large. This is a preferences backup, not a full library/database backup.<br><br>After a restore, you need to <b>restart</b> Lyrion Music Server manually for the changes to take effect. If any of the restored settings require a media library rescan, you'll be told so after the restore and need to trigger one manually afterwards.
+	EN	<b>Use at your own risk.</b> This is an experimental feature. Please create your own backup of all relevant files beforehand.<br><br>This backs up and restores the preference (<i>.prefs</i>) files of LMS and its plugins, plus a small selection of per-track LMS (not APC) values (e.g. date added, play count, last played). Full database files (<i>.db</i>) are <b>not</b> included as they can be very large - this is not a full library/database backup.<br><br>After restoring preferences, you need to <b>restart</b> Lyrion Music Server manually for the changes to take effect. If any of the restored settings require a media library rescan, you'll be told so after the restore and need to trigger one manually afterwards.
 
 PLUGIN_POTPOURRI_SETTINGS_RESTORE_LIST_BUTTON
 	EN	List contents
 
 PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECTITEMS_DESC
-	EN	Select which preference files you want to restore:
+	EN	Select which items you want to restore:
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_SKIPPREFS
+	EN	Skip preferences during restore (optional)
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_SKIPPREFS_PLACEHOLDER
+	EN	e.g. server:server_uuid, plugin.alternativeplaycount:apcparentfolderpath
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_SKIPPREFS_DESC
+	EN	Comma-separated list of preferences to always skip when restoring, in the format <i>namespace:prefname</i>.<br>Useful e.g. when migrating a server to a different platform or replicating preferences across multiple server instances, to avoid overwriting values that must stay unique or environment-specific per instance.
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_DATEADDED_LABEL
+	EN	Date added of all tracks
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_PLAYCOUNTLASTPLAYED_LABEL
+	EN	Play Count / Last Played of all tracks (LMS, not APC)
+
+PLUGIN_POTPOURRI_SETTINGS_BACKUP_INPROGRESS
+	EN	Creating backup
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_INPROGRESS
+	EN	Restoring from backup
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_SELECT_ALL
+	EN	Select all
+
+PLUGIN_POTPOURRI_SETTINGS_RESTORE_DESELECT_ALL
+	EN	Deselect all
