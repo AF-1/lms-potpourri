@@ -1938,7 +1938,14 @@ sub _tpRestoreScanFunction {
 		}
 		$line //= '';
 		$line =~ s/&#(\d*);/escape(chr($1))/ge;
-		$tpBackupParserNB->parse_more($line);
+		eval { $tpBackupParserNB->parse_more($line) };
+		if ($@) {
+			$log->error("Error parsing backup file: $@");
+			$tpRestoreErrors++;
+			_tpDoneScanning();
+			return 0;
+		}
+
 		return defined($tpBackupParserNB) ? 1 : 0;
 	}
 
