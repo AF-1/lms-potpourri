@@ -34,8 +34,6 @@ PotPourri
 
 - Track context menu item: show tracks with similar titles by the same artist (e.g. live or remix version).
 
-- Back up and restore the preference (<i>.prefs</i>) files of LMS and its plugins plus a small selection of per-track LMS (not APC) values (e.g. date added, play count, last played).
-
 - …
 <br><br><br>
 
