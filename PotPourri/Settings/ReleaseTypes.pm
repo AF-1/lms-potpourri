@@ -34,12 +34,7 @@ sub currentPage {
 }
 
 sub pages {
-	my %page = (
-		'name' => name(),
-		'page' => page(),
-	);
-	my @pages = (\%page);
-	return \@pages;
+	return [{ 'name' => name(), 'page' => page() }];
 }
 
 sub prefs {

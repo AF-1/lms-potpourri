@@ -36,12 +36,7 @@ sub currentPage {
 }
 
 sub pages {
-	my %page = (
-		'name' => Slim::Utils::Strings::string('PLUGIN_POTPOURRI_SETTINGS_VARIOUS'),
-		'page' => page(),
-	);
-	my @pages = (\%page);
-	return \@pages;
+	return [{ 'name' => Slim::Utils::Strings::string('PLUGIN_POTPOURRI_SETTINGS_VARIOUS'), 'page' => page() }];
 }
 
 sub prefs {
