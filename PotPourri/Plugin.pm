@@ -1528,7 +1528,7 @@ sub createMissingTracksPersistentRows {
 	my $dbh = Slim::Schema->dbh;
 	main::DEBUGLOG && $log->is_debug && $log->debug('Adding tracks_persistent rows for library tracks that currently have none, e.g. because another track shares the same MusicBrainz ID tag.');
 
-	my $rowsAdded = eval { $dbh->do('insert into tracks_persistent (url, urlmd5, added) select tracks.url, tracks.urlmd5, ? from tracks left join tracks_persistent on tracks_persistent.urlmd5 = tracks.urlmd5 where tracks.audio = 1 and tracks_persistent.id is null', undef, int(time())) };
+	my $rowsAdded = eval { $dbh->do('insert into tracks_persistent (url, urlmd5, added) select tracks.url, tracks.urlmd5, coalesce(nullif(tracks.timestamp, 0), ?) from tracks left join tracks_persistent on tracks_persistent.urlmd5 = tracks.urlmd5 where tracks.audio = 1 and tracks_persistent.id is null', undef, int(time())) };
 	if ($@) {
 		$log->error("Database error: $@");
 		return;
