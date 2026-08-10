@@ -45,15 +45,27 @@ sub prefs {
 
 sub handler {
 	my ($class, $client, $paramRef) = @_;
-	my $result = $class->SUPER::handler($client, $paramRef);
 	if ($paramRef->{'purgedeadtrackspersistent'}) {
-		Plugins::PotPourri::Plugin::purgeDeadTracksPersistent();
+		if (Slim::Music::Import->stillScanning) {
+			$log->warn('Cannot purge tracks_persistent while an LMS scan is in progress');
+		} else {
+			Plugins::PotPourri::Plugin::purgeDeadTracksPersistent();
+		}
 	}
-	return $result;
+	if ($paramRef->{'createmissingtrackspersistent'}) {
+		if (Slim::Music::Import->stillScanning) {
+			$log->warn('Cannot add missing tracks_persistent rows while an LMS scan is in progress');
+		} else {
+			Plugins::PotPourri::Plugin::createMissingTracksPersistentRows();
+		}
+	}
+	return $class->SUPER::handler($client, $paramRef);
 }
 
 sub beforeRender {
 	my ($class, $paramRef) = @_;
+	$paramRef->{'lastpurgedeadtrackspersistentcount'} = $prefs->get('lastpurgedeadtrackspersistentcount') if defined $prefs->get('lastpurgedeadtrackspersistentcount');
+	$paramRef->{'lastcreatemissingtrackspersistentcount'} = $prefs->get('lastcreatemissingtrackspersistentcount') if defined $prefs->get('lastcreatemissingtrackspersistentcount');
 	my $toplevelplaylistname = $prefs->get('toplevelplaylistname') || 'none';
 	my $queryresult = Slim::Control::Request::executeRequest(undef, ['playlists', '0', '500']);
 	my $playlistcount = $queryresult->getResult('count');

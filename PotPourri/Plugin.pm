@@ -1515,12 +1515,26 @@ sub purgeDeadTracksPersistent {
 	my $dbh = Slim::Schema->dbh;
 	main::DEBUGLOG && $log->is_debug && $log->debug('Removing remove dead tracks from the LMS tracks_persistent table whose file URL has no match in the current LMS tracks table.');
 
-	my $sqlstatement = "delete from tracks_persistent where urlmd5 not in (select urlmd5 from tracks where tracks.urlmd5 = tracks_persistent.urlmd5)";
-	eval {$dbh->do($sqlstatement)};
+	my $rowsRemoved = eval { $dbh->do('delete from tracks_persistent where urlmd5 not in (select urlmd5 from tracks where tracks.urlmd5 = tracks_persistent.urlmd5)') };
 	if ($@) {
 		$log->error("Database error: $@");
+		return;
 	}
-	main::DEBUGLOG && $log->is_debug && $log->debug('Finished removing dead tracks from tracks_persistent.');
+	$prefs->set('lastpurgedeadtrackspersistentcount', ($rowsRemoved // 0) + 0);
+	main::DEBUGLOG && $log->is_debug && $log->debug('Finished removing dead tracks from tracks_persistent. Rows removed: '.(($rowsRemoved // 0) + 0));
+}
+
+sub createMissingTracksPersistentRows {
+	my $dbh = Slim::Schema->dbh;
+	main::DEBUGLOG && $log->is_debug && $log->debug('Adding tracks_persistent rows for library tracks that currently have none, e.g. because another track shares the same MusicBrainz ID tag.');
+
+	my $rowsAdded = eval { $dbh->do('insert into tracks_persistent (url, urlmd5, added) select tracks.url, tracks.urlmd5, ? from tracks left join tracks_persistent on tracks_persistent.urlmd5 = tracks.urlmd5 where tracks.audio = 1 and tracks_persistent.id is null', undef, int(time())) };
+	if ($@) {
+		$log->error("Database error: $@");
+		return;
+	}
+	$prefs->set('lastcreatemissingtrackspersistentcount', ($rowsAdded // 0) + 0);
+	main::DEBUGLOG && $log->is_debug && $log->debug('Finished adding missing tracks_persistent rows. Rows added: '.(($rowsAdded // 0) + 0));
 }
 
 sub APCqueryBatch {
