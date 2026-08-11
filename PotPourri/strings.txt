@@ -288,7 +288,7 @@ PLUGIN_POTPOURRI_SETTINGS_CREATEMISSINGTRACKS_PERSISTENT
 	EN	Add missing tracks to<br>LMS tracks_persistent table
 
 PLUGIN_POTPOURRI_SETTINGS_CREATEMISSINGTRACKS_PERSISTENT_DESC
-	EN	This will add a <b>tracks_persistent</b> row (with no rating) for every track in the current LMS <b>tracks</b> table that doesn't have one yet - which can happen when two tracks share the same MusicBrainz ID tag. This may need to be run again after a full library rescan, since the underlying condition can recur.
+	EN	This will add a <b>tracks_persistent</b> row for every track in the current LMS <b>tracks</b> table that doesn't have one yet - which can happen when two tracks share the same MusicBrainz ID tag. No rating is guessed; "Date Added" is taken from each file's last-modified timestamp (not the true original add date, which can no longer be determined). This may need to be run again after a full library rescan, since the underlying condition can recur. Details on the affected tracks are written to <b>PPT_Added-Missing-TracksPersistent-Rows.txt</b> in the LMS preferences folder.
 
 PLUGIN_POTPOURRI_SETTINGS_CREATEMISSINGTRACKS_PERSISTENT_BUTTON
 	EN	Add missing tracks now
@@ -298,6 +298,9 @@ PLUGIN_POTPOURRI_SETTINGS_CREATEMISSINGTRACKS_PERSISTENT_INPROGRESS
 
 PLUGIN_POTPOURRI_SETTINGS_CREATEMISSINGTRACKS_PERSISTENT_LASTCOUNT
 	EN	Last run added %s row(s) to tracks_persistent.
+
+PLUGIN_POTPOURRI_SETTINGS_CREATEMISSINGTRACKS_PERSISTENT_FILEHINT
+	EN	See PPT_Added-Missing-TracksPersistent-Rows.txt in the LMS preferences folder for details on the affected tracks.
 
 
 PLUGIN_POTPOURRI_SETTINGS_EXPORT_PLAYLISTS_TO_FILES

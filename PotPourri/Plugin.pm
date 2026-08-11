@@ -1528,13 +1528,56 @@ sub createMissingTracksPersistentRows {
 	my $dbh = Slim::Schema->dbh;
 	main::DEBUGLOG && $log->is_debug && $log->debug('Adding tracks_persistent rows for library tracks that currently have none, e.g. because another track shares the same MusicBrainz ID tag.');
 
+	my $missingTracks = eval { $dbh->selectall_arrayref('select tracks.url, tracks.urlmd5, tracks.musicbrainz_id from tracks left join tracks_persistent on tracks_persistent.urlmd5 = tracks.urlmd5 where tracks.audio = 1 and tracks_persistent.id is null') };
+	if ($@) {
+		$log->error("Database error: $@");
+		return;
+	}
+
 	my $rowsAdded = eval { $dbh->do('insert into tracks_persistent (url, urlmd5, added) select tracks.url, tracks.urlmd5, coalesce(nullif(tracks.timestamp, 0), ?) from tracks left join tracks_persistent on tracks_persistent.urlmd5 = tracks.urlmd5 where tracks.audio = 1 and tracks_persistent.id is null', undef, int(time())) };
 	if ($@) {
 		$log->error("Database error: $@");
 		return;
 	}
+	writeMissingTracksPersistentToFile($missingTracks) if scalar @{$missingTracks};
+
 	$prefs->set('lastcreatemissingtrackspersistentcount', ($rowsAdded // 0) + 0);
 	main::DEBUGLOG && $log->is_debug && $log->debug('Finished adding missing tracks_persistent rows. Rows added: '.(($rowsAdded // 0) + 0));
+}
+
+sub writeMissingTracksPersistentToFile {
+	my $missingTracks = shift;
+	my $filename = catfile(Slim::Utils::OSDetect::dirsFor('prefs'), 'PPT_Added-Missing-TracksPersistent-Rows.txt');
+	my $output = FileHandle->new($filename, '>:utf8') or do {
+		$log->error('Could not open '.$filename.' for writing. Does LMS have read/write permissions for its prefs folder?');
+		return;
+	};
+	print $output "This file lists tracks for which PotPourri added a new row to the LMS tracks_persistent table.\n\n";
+	print $output "Background: LMS can end up with two or more tracks that share the same MusicBrainz ID tag. In that\n";
+	print $output "situation, LMS's own database bookkeeping can leave one of those tracks without its own tracks_persistent\n";
+	print $output "row, which is where RatingsLight ratings and playback statistics live. This action adds the missing row\n";
+	print $output "back so ratings can be stored correctly again for those tracks.\n\n";
+	print $output "RatingsLight is safe: it always reads and writes ratings by matching this table's urlmd5 column directly,\n";
+	print $output "not through LMS's own MusicBrainz-ID-based lookup, so it isn't affected by which track LMS itself considers\n";
+	print $output "primary for a shared MusicBrainz ID. AlternativePlayCount (APC) is not affected by this at all: it keeps\n";
+	print $output "its own play/skip counts in a separate table, not in tracks_persistent.\n\n";
+	print $output "Important: this is a workaround, not a fix for the underlying cause. The affected tracks still share\n";
+	print $output "the same MusicBrainz ID tag. LMS's own native play statistics may still be misattributed between the\n";
+	print $output "affected tracks - that isn't something a plugin can correct.\n\n";
+	print $output "A full library rescan (especially a wipe-and-rescan) does not delete this row - it lives in a separate\n";
+	print $output "database file that survives a rescan. What can change on a rescan is which of the affected tracks LMS's\n";
+	print $output "own scanner treats as the 'primary' one for MusicBrainz-ID-based lookups; that's outside what this action\n";
+	print $output "or RatingsLight can control. If needed, simply run this action again after a rescan.\n\n";
+	print $output "The 'Date Added' for these new rows was set from each file's last-modified timestamp rather than the\n";
+	print $output "current time, to avoid these tracks jumping to the top of 'New Music' - this is only an approximation\n";
+	print $output "and may not reflect the file's real original library-add date.\n\n";
+	print $output strftime("%Y-%m-%d -- %H:%M:%S", localtime time)."\n";
+	print $output scalar(@{$missingTracks})." track(s) got a new tracks_persistent row this run:\n\n";
+	foreach my $missingTrack (@{$missingTracks}) {
+		print $output $missingTrack->[0]."\n";
+		print $output 'MusicBrainz ID: '.($missingTrack->[2] || '(none)')."\n\n";
+	}
+	close $output;
 }
 
 sub APCqueryBatch {
