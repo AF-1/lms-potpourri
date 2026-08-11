@@ -52,13 +52,6 @@ sub handler {
 			Plugins::PotPourri::Plugin::purgeDeadTracksPersistent();
 		}
 	}
-	if ($paramRef->{'createmissingtrackspersistent'}) {
-		if (Slim::Music::Import->stillScanning) {
-			$log->warn('Cannot add missing tracks_persistent rows while an LMS scan is in progress');
-		} else {
-			Plugins::PotPourri::Plugin::createMissingTracksPersistentRows();
-		}
-	}
 	return $class->SUPER::handler($client, $paramRef);
 }
 
