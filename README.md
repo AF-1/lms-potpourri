@@ -34,6 +34,8 @@ PotPourri
 
 - Track context menu item: show tracks with similar titles by the same artist (e.g. live or remix version).
 
+- **Transfer Files**: copy or move selected file types (currently XML, TXT) between the LMS preferences folder, playlist folder, media folders and mounted volumes (subfolders included). Useful on systems with restricted file system access, such as Daphile, piCorePlayer or Osmium Sound.
+
 - …
 <br><br><br>
 
