@@ -406,3 +406,67 @@ PLUGIN_POTPOURRI_SETTINGS_ABOUT
 
 PLUGIN_POTPOURRI_SETTINGS_ABOUT_TEXT
 	EN	Please see the <a href="https://github.com/AF-1/lms-potpourri/wiki/Comment-tag-info"><b>GitHub wiki</b></a> for more information.
+
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER
+	EN	Transfer Files
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_DESC
+	EN	Copy or move a single file between the locations listed below (including subfolders). Useful on systems that restrict file system access, such as Daphile, piCorePlayer or Osmium Sound.
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ALLOWEDEXTENSIONS
+	EN	Allowed file extensions
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ALLOWEDPATHS
+	EN	Allowed source/target locations
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ALLOWEDPATHS_DESC
+	EN	Only locations the LMS system user can actually see are listed here (subfolders included). If a drive you expect is missing, check that it's accessible to that user.
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_LOCATION_PREFS
+	EN	LMS preferences folder
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_LOCATION_PLAYLISTS
+	EN	LMS playlist folder
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_LOCATION_MEDIADIR_PREFIX
+	EN	Media dir:
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_PERMISSION_WARNING
+	EN	The following locations are not writable:
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_SOURCE
+	EN	Source file
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_TARGET
+	EN	Target folder
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_MODE
+	EN	Action
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_MODE_COPY
+	EN	Copy
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_MODE_MOVE
+	EN	Move
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_BUTTON_COPY
+	EN	Copy now
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_BUTTON_MOVE
+	EN	Move now
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_SUCCESS
+	EN	File transferred successfully.
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ERROR_SOURCE_PATH
+	EN	Please select a file from one of the allowed locations listed above (or their subfolders).
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ERROR_SOURCE_EXTENSION
+	EN	This file type is not allowed. See allowed file extensions above.
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ERROR_TRANSFER
+	EN	The file could not be transferred. Please check file and folder permissions and available disk space. Then see the server log for details.
+
+PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ERROR_TARGET
+	EN	Invalid target folder

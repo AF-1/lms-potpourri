@@ -51,11 +51,13 @@ sub initPlugin {
 		require Plugins::PotPourri::Settings::CommentTagInfo;
 		require Plugins::PotPourri::PlayerSettings;
 		require Plugins::PotPourri::Settings::ReleaseTypes;
+		require Plugins::PotPourri::Settings::FileTransfer;
 		Plugins::PotPourri::Settings::Basic->new($class);
 		Plugins::PotPourri::Settings::Export->new($class);
 		Plugins::PotPourri::Settings::CommentTagInfo->new($class);
 		Plugins::PotPourri::PlayerSettings->new($class);
 		Plugins::PotPourri::Settings::ReleaseTypes->new($class);
+		Plugins::PotPourri::Settings::FileTransfer->new($class);
 	}
 
 	Slim::Menu::PlaylistInfo->registerInfoProvider(potpourri_changeplsortorder => (

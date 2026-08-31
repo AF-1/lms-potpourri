@@ -1,0 +1,69 @@
+<script TYPE="text/javascript">
+	function updateExecuteButtonLabel() {
+		var mode = document.getElementById('filetransfermode').value;
+		document.getElementById('filetransferexecutebtn').value = (mode == 'move') ? '[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_BUTTON_MOVE" | string %]' : '[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_BUTTON_COPY" | string %]';
+	}
+</script>
+
+[% page = "PLUGIN_POTPOURRI" %]
+[% PROCESS settings/header.html %]
+
+[% PROCESS plugins/PotPourri/settings/subpage_chooser.html %]
+
+<p>[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_DESC" | string %]</p>
+<br><br>
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ALLOWEDPATHS" desc="PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ALLOWEDPATHS_DESC" %]
+<ul>
+	[% FOREACH dir = filetransferdirs %]
+		<li>[% dir.label %] <span title="[% dir.path %]" style="padding-left:3px;cursor:help;">&#9432;</span></li>
+	[% END %]
+</ul>
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ALLOWEDEXTENSIONS" %]
+<p>[% filetransferallowedextensions.join(', ') %]</p>
+[% END %]
+[% IF filetransferpermissionwarnings %]
+	[% WRAPPER setting title="" %]
+		<p style="color:#cc0000 !important;margin-bottom:4px;">[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_PERMISSION_WARNING" | string %]</p>
+		[% FOREACH warning = filetransferpermissionwarnings %]
+			<div style="color:#cc0000 !important;padding-left:20px;">&#8226;&nbsp;[% warning %]</div>
+		[% END %]
+	[% END %]
+[% END %]
+[% IF filetransfersuccess %]
+	[% WRAPPER setting title="" %]
+	<p style="color:#008800 !important;">[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_SUCCESS" | string %]</p>
+	[% END %]
+[% END %]
+[% IF filetransfertransfererror %]
+	[% WRAPPER setting title="" %]
+	<span style="color:#cc0000 !important;">[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ERROR_TRANSFER" | string %]</span>
+	[% END %]
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_SOURCE" %]
+	<input type="text" class="stdedit selectFile_(?:[% filetransferallowedextensions.join('|') %])" name="filetransfersource" id="filetransfersource" size="50" value="[% filetransferdirs.0.path %]">
+	[% IF filetransfersourcepatherror %]<br><br><span style="color:#cc0000 !important;">[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ERROR_SOURCE_PATH" | string %]</span>[% END %]
+	[% IF filetransfersourceextensionerror %]<br><br><span style="color:#cc0000 !important;">[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ERROR_SOURCE_EXTENSION" | string %]</span>[% END %]
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_MODE" %]
+	<select class="stdedit" name="filetransfermode" id="filetransfermode" onchange="updateExecuteButtonLabel();">
+		<option value="copy" selected>[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_MODE_COPY" | string %]</option>
+		<option value="move">[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_MODE_MOVE" | string %]</option>
+	</select>
+[% END %]
+
+[% WRAPPER setting title="PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_TARGET" %]
+	<input type="text" class="stdedit selectFolder" name="filetransfertarget" id="filetransfertarget" size="50" value="[% filetransferdirs.0.path %]">
+	[% IF filetransfertargeterror %]<br><br><span style="color:#cc0000 !important;">[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_ERROR_TARGET" | string %]</span>[% END %]
+[% END %]
+<br>
+
+[% WRAPPER setting title="" %]
+<input type="submit" name="filetransferexecute" id="filetransferexecutebtn" class="stdclick" style="padding:3px;" value="[% "PLUGIN_POTPOURRI_SETTINGS_FILETRANSFER_BUTTON_COPY" | string %]">
+[% END %]
+<br><br><br>
+
+[% PROCESS settings/footer.html %]

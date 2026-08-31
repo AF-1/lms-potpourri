@@ -13,13 +13,17 @@ use utf8;
 use Slim::Utils::Prefs;
 use Slim::Utils::Log;
 use Time::HiRes qw(time);
+use File::Copy qw(copy move);
+use File::Basename qw(dirname);
+use File::Temp ();
+use Cwd ();
 
 my $prefs = preferences('plugin.potpourri');
 my $log = logger('plugin.potpourri');
 
 use base 'Exporter';
 our %EXPORT_TAGS = (
-	all => [qw(assignReleaseTypes trim_leadtail trim_all)],
+	all => [qw(assignReleaseTypes isPathAllowed isPathWritable transferFile trim_leadtail trim_all)],
 );
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 
@@ -47,6 +51,57 @@ sub assignReleaseTypes {
 		$sth->finish();
 	}
 	main::INFOLOG && $log->is_info && $log->info('Finished assigning release types after '.(time() - $started).' secs.');
+}
+
+sub isPathAllowed {
+	my ($path, $allowedDirs) = @_;
+	return 0 unless defined $path && length $path && -d $path;
+	my $resolvedPath = Cwd::realpath($path);
+	return 0 unless defined $resolvedPath;
+
+	foreach my $baseDir (@{$allowedDirs}) {
+		my $resolvedBase = Cwd::realpath($baseDir);
+		next unless defined $resolvedBase;
+		if ($resolvedPath eq $resolvedBase || index($resolvedPath, $resolvedBase.'/') == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+sub isPathWritable {
+	my $dir = shift;
+	return 0 unless $dir;
+
+	# don't rely on the -w permission bit alone, it can be unreliable with ACLs;
+	# instead actually attempt to create a temp file (see LMS commit 50e5b72)
+	while ($dir && !-d $dir) {
+		my $parentDir = dirname($dir);
+		last if $parentDir eq $dir;
+		$dir = $parentDir;
+	}
+	return 0 unless $dir && -d $dir;
+
+	my $testFile;
+	eval {
+		(undef, $testFile) = File::Temp::tempfile('potpourriwritetestXXXX', DIR => $dir, UNLINK => 1);
+	};
+	if ($testFile && -f $testFile) {
+		unlink $testFile;
+		return 1;
+	}
+	return 0;
+}
+
+sub transferFile {
+	my ($source, $dest, $mode) = @_;
+	return (0, 'sourcenotreadable') unless -r $source;
+	return (0, 'sourceisdir') if -d $source;
+	return (0, 'targetexists') if -e $dest;
+
+	my $ok = ($mode && $mode eq 'move') ? File::Copy::move($source, $dest) : File::Copy::copy($source, $dest);
+	return (0, "$!") unless $ok;
+	return (1, undef);
 }
 
 sub trim_leadtail {
