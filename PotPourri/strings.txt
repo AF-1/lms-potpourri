@@ -62,58 +62,58 @@ PLUGIN_POTPOURRI_PL_SORTOPTIONS_ALBUM
 	EN	Album > disc no. > track no.
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_GENRE
-	EN	First genre
+	EN	First genre (A-Z)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_YEAR
-	EN	Year
+	EN	Year (oldest first)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_TRACKNUMBER
-	EN	Track number
+	EN	Track number (low to high)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_TRACKTITLE
-	EN	Track title
+	EN	Track title (A-Z)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_DATE_ADDED
-	EN	Date added
+	EN	Date added (oldest first)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_PLAYCOUNT
-	EN	Play count
+	EN	Play count (high to low)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_PLAYCOUNT_APC
-	EN	Play count (APC)
+	EN	Play count (APC, high to low)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_DATE_LASTPLAYED
-	EN	Date last played
+	EN	Date last played (newest first)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_DATE_LASTPLAYED_APC
-	EN	Date last played (APC)
+	EN	Date last played (APC, newest first)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_RATING
-	EN	Rating
+	EN	Rating (low to high)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_DPSV_APC
-	EN	Dynamic played/skipped value (APC)
+	EN	Dynamic played/skipped value (APC, high to low)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_DURATION
-	EN	Track length
+	EN	Track length (short to long)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_BPM
-	EN	BPM
+	EN	BPM (low to high)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_BITRATE
-	EN	Bitrate
+	EN	Bitrate (low to high)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_ALBUMARTIST
-	EN	Album artist
+	EN	Album artist (A-Z)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_COMPOSER
-	EN	Composer
+	EN	Composer (A-Z)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_CONDUCTOR
-	EN	Conductor
+	EN	Conductor (A-Z)
 
 PLUGIN_POTPOURRI_PL_SORTOPTIONS_BAND
-	EN	Band
+	EN	Band (A-Z)
 
 PLUGIN_POTPOURRI_WEB_PLINFO
 	EN	Information

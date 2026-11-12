@@ -191,7 +191,31 @@ sub initPrefs {
 
 
 	my $i = 1;
-	%sortOptionLabels = map { $i++ => $_ } ('Random order', 'Inverted order', 'Artist > album > disc no. > track no.', 'Album > artist > disc no. > track no.', 'Album > disc no. > track no.', 'Genre', 'Year', 'Track number', 'Track title', 'Date added', 'Play count', 'Play count (APC)', 'Date last played', 'Date last played (APC)', 'Rating', 'Dynamic played/skipped value (APC)', 'Track length', 'BPM', 'Bitrate', 'Album artist', 'Composer', 'Conductor', 'Band');
+	%sortOptionLabels = map { $i++ => $_ } qw(
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_RANDOMIZE
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_INVERT
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_ARTIST
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_ALBUM_ARTIST
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_ALBUM
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_GENRE
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_YEAR
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_TRACKNUMBER
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_TRACKTITLE
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_DATE_ADDED
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_PLAYCOUNT
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_PLAYCOUNT_APC
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_DATE_LASTPLAYED
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_DATE_LASTPLAYED_APC
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_RATING
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_DPSV_APC
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_DURATION
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_BPM
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_BITRATE
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_ALBUMARTIST
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_COMPOSER
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_CONDUCTOR
+		PLUGIN_POTPOURRI_PL_SORTOPTIONS_BAND
+	);
 }
 
 
@@ -279,7 +303,7 @@ sub changePLtrackOrder_jive_choice {
 
 	my $cnt = 0;
 	foreach (@sortOptionKeys) {
-		next if $sortOptionLabels{$_} =~ '(APC)' && !$apc_enabled;
+		next if $sortOptionLabels{$_} =~ /_APC$/ && !$apc_enabled;
 		my $action = {
 			'do' => {
 				'player' => 0,
@@ -290,7 +314,7 @@ sub changePLtrackOrder_jive_choice {
 				'cmd' => ['potpourri', 'changeplaylisttrackorder', $playlistID, $_, $playlistName],
 			},
 		};
-		my $displayText = $sortOptionLabels{$_};
+		my $displayText = cstring($client, $sortOptionLabels{$_});
 
 		$request->addResultLoop('item_loop', $cnt, 'text', $displayText);
 		$request->addResultLoop('item_loop', $cnt, 'style', 'itemNoAction');
@@ -357,7 +381,7 @@ sub changePLtrackOrder {
 	$playlist->setTracks(\@PLtracks);
 	$playlist->update;
 
-	if ($playlist->content_type eq 'ssp') {
+	if ($playlist->content_type eq 'ssp' && !Slim::Music::Info::isRemoteURL($playlist->url)) {
 		main::DEBUGLOG && $log->is_debug && $log->debug('Writing playlist to disk.');
 		Slim::Formats::Playlists->writeList(\@PLtracks, undef, $playlist->url);
 	}
@@ -365,9 +389,9 @@ sub changePLtrackOrder {
 	Slim::Schema->forceCommit;
 	Slim::Schema->wipeCaches;
 	if ($playlistName) {
-		main::INFOLOG && $log->is_info && $log->info('Sorting the playlist "'.$playlistName.'" by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
+		main::INFOLOG && $log->is_info && $log->info('Sorting the playlist "'.$playlistName.'" by "'.string($sortOptionLabels{$sortOption}).'" took '.(time()-$started).' seconds');
 	} else {
-		main::INFOLOG && $log->is_info && $log->info('Sorting the playlist by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
+		main::INFOLOG && $log->is_info && $log->info('Sorting the playlist by "'.string($sortOptionLabels{$sortOption}).'" took '.(time()-$started).' seconds');
 	}
 
 	return 0;
@@ -397,9 +421,9 @@ sub getSortOptions {
 	my $sortOptions = [];
 
 	foreach (@sortOptionKeys) {
-		next if $sortOptionLabels{$_} =~ '(APC)' && !$apc_enabled;
+		next if $sortOptionLabels{$_} =~ /_APC$/ && !$apc_enabled;
 		push @{$sortOptions}, {
-					name => $sortOptionLabels{$_},
+					name => cstring($client, $sortOptionLabels{$_}),
 					url => \&changeClientPLTrackOrder,
 					passthrough => [{
 						sortOption => $_,
@@ -437,11 +461,11 @@ sub changeClientPLTrackOrder {
 	$client->currentPlaylistUpdateTime(Time::HiRes::time());
 	Slim::Player::Playlist::refreshPlaylist($client);
 
-	main::INFOLOG && $log->is_info && $log->info('Sorting current playlist of client "'.$client->name.'" by "'.$sortOptionLabels{$sortOption}.'" took '.(time()-$started).' seconds');
+	main::INFOLOG && $log->is_info && $log->info('Sorting current playlist of client "'.$client->name.'" by "'.string($sortOptionLabels{$sortOption}).'" took '.(time()-$started).' seconds');
 
 	my $items = [
 		{
-			name => string('PLUGIN_POTPOURRI_CLIENTPL_CHANGEORDER_DONE').' '.$sortOptionLabels{$sortOption},
+			name => string('PLUGIN_POTPOURRI_CLIENTPL_CHANGEORDER_DONE').' '.cstring($client, $sortOptionLabels{$sortOption}),
 			type => 'text',
 		},
 		{
@@ -1342,7 +1366,7 @@ sub _getSimilarTrackTitles {
 		my $similarityThreshold = $prefs->get('similaritythreshold') // 85;
 		my $maxCandidates = 300;
 		my $dbh = Slim::Schema->dbh;
-		my $sth = $dbh->prepare("select tracks.id,tracks.title,tracks.titlesearch from tracks where tracks.titlesearch LIKE ? and tracks.id != ? order by tracks.titlesearch limit ?");
+		my $sth = $dbh->prepare("select tracks.id,tracks.title,tracks.titlesearch from tracks where tracks.titlesearch LIKE ? and tracks.id != ? and (tracks.audio = 1 or tracks.extid is not null) and ifnull(tracks.content_type, '') not in ('cpl','src','ssp','dir') order by tracks.titlesearch limit ?");
 		eval {
 			$sth->bind_param(1, '%'.$curTitleNormalised.'%');
 			$sth->bind_param(2, $curTrack->id);
