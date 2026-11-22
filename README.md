@@ -5,6 +5,10 @@ PotPourri
 <img src="screenshots/ppt_repo_icon.png" align="right" width="70px">A collection of various small [features](#features).
 
 <br clear="right">
+
+> [!TIP]
+> **External API:** This plugin provides an external API for developers. See the [External API wiki page](https://github.com/AF-1/lms-potpourri/wiki/External-API) for details.
+
 <a href="https://github.com/AF-1/">⬅️ <b>Back to the list of all plugins</b></a>
 <br><br>
 
