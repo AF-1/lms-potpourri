@@ -12,9 +12,11 @@ use utf8;
 
 use base qw(Plugins::PotPourri::Settings::BaseSettings);
 use Slim::Utils::Prefs;
+use Slim::Utils::Log;
 use Plugins::PotPourri::Common ':all';
 
 my $prefs = preferences('plugin.potpourri');
+my $log = logger('plugin.potpourri');
 
 sub new {
 	my ($class, $plugin) = @_;
@@ -58,9 +60,14 @@ sub handler {
 		$prefs->set('rltypematrix', \@rltypematrix);
 		$paramRef->{'rltypematrix'} = \@rltypematrix;
 	}
+
 	if ($paramRef->{'rlmanualadjust'}) {
-		$paramRef->{'saveSettings'} = 1;
-		assignReleaseTypes();
+		if (Slim::Music::Import->stillScanning) {
+			main::DEBUGLOG && $log->is_debug && $log->debug('Cannot assign release types while an LMS scan is in progress');
+		} else {
+			$paramRef->{'saveSettings'} = 1;
+			assignReleaseTypes();
+		}
 	}
 
 	# push to settings page

@@ -66,12 +66,7 @@ sub initPlugin {
 			return playlistSortContextMenu(@_);
 		},
 	));
-	if ($prefs->get('displaytrackid')) {
-		Slim::Menu::TrackInfo->registerInfoProvider('zppt_infotrackid' => (
-			parent => 'moreinfo', isa => 'bottom',
-			func => sub { return getTrackIdForContextMenu(@_); }
-		));
-	}
+	registerContextMenuIDs();
 	if ($prefs->get('contextmenusimilartracktitlesbysameartist')) {
 		Slim::Menu::TrackInfo->registerInfoProvider('ppt_similartracktitlesbysameartist' => (
 			before => 'moreinfo',
@@ -93,6 +88,8 @@ sub initPlugin {
 	Slim::Control::Request::addDispatch(['potpourri', 'changeplaylisttrackorder', '_playlistid', '_sortoption', '_playlistname'], [1, 0, 1, \&changePLtrackOrder_jive]);
 	Slim::Control::Request::addDispatch(['potpourri', 'similartracktitlesbysameartist', '_trackid'], [1, 0, 1, \&_getSimilarTrackTitles_jive]);
 	Slim::Control::Request::addDispatch(['potpourri', 'similartracktitles', '_trackid'], [1, 0, 1, \&_getSimilarTrackTitles_jive]);
+	Slim::Control::Request::addDispatch(['potpourri', 'getsimilartracktitlesbysameartist'], [0, 1, 1, \&_getSimilarTrackTitles_query]);
+	Slim::Control::Request::addDispatch(['potpourri', 'getsimilartracktitles'], [0, 1, 1, \&_getSimilarTrackTitles_query]);
 	Slim::Control::Request::addDispatch(['potpourri', 'actionsmenu'], [0, 1, 1, \&_getActionsMenu]);
 	$originalMixerVolumeCommand = Slim::Control::Request::addDispatch(['mixer', 'volume', '_newvalue'],[1, 0, 1, \&_limitVolumeControl]);
 
@@ -135,6 +132,7 @@ sub initPrefs {
 		limitvolumecontrollevel => 50,
 		contextmenusimilartracktitlesbysameartist => 1,
 		contextmenusimilartracktitles => 1,
+		displayids => 1,
 		similaritythreshold => 85,
 		rltypematrix => [],
 	});
@@ -154,16 +152,7 @@ sub initPrefs {
 			initMatrix();
 			Slim::Music::Info::clearFormatDisplayCache();
 		}, 'commenttaginfoconfigmatrix');
-	$prefs->setChange(sub {
-			main::DEBUGLOG && $log->is_debug && $log->debug('De-/reregistering infoprovider zppt_infotrackid');
-			Slim::Menu::TrackInfo->deregisterInfoProvider('zppt_infotrackid');
-			if ($prefs->get('displaytrackid')) {
-				Slim::Menu::TrackInfo->registerInfoProvider('zppt_infotrackid' => (
-					parent => 'moreinfo', isa => 'bottom',
-					func => sub { return getTrackIdForContextMenu(@_); }
-				));
-			}
-		}, 'displaytrackid');
+	$prefs->setChange(\&registerContextMenuIDs, 'displayids');
 	$prefs->setChange(sub {
 			main::DEBUGLOG && $log->is_debug && $log->debug('De-/reregistering infoprovider ppt_similartracktitlesbysameartist');
 			Slim::Menu::TrackInfo->deregisterInfoProvider('ppt_similartracktitlesbysameartist');
@@ -270,6 +259,7 @@ sub changePLtrackOrder_web {
 		my $failed = changePLtrackOrder($playlistID, $sortOption, $playlistName);
 		if ($failed) {
 			$params->{failed} = 1;
+			$params->{scanning} = 1 if $failed eq 'scanning';
 		} else {
 			$params->{orderchanged} = 1;
 		}
@@ -359,6 +349,11 @@ sub changePLtrackOrder_jive {
 
 sub changePLtrackOrder {
 	my ($playlistID, $sortOption, $playlistName) = @_;
+	if (Slim::Music::Import->stillScanning) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('not available until library scan is completed');
+		return 'scanning';
+	}
+
 	if (!$playlistID || !$sortOption) {
 		$log->error('Missing playlist id or sort option');
 		return 1;
@@ -437,6 +432,12 @@ sub changeClientPLTrackOrder {
 	my ($client, $cb, $params, $args) = @_;
 	return if !$client;
 
+	if (Slim::Music::Import->stillScanning) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('not available until library scan is completed');
+		$cb->({items => [{name => string('PLUGIN_POTPOURRI_NOTAVAILABLE_SCANNING'), type => 'text'}]});
+		return;
+	}
+
 	main::INFOLOG && $log->is_info && $log->info('client ID:'.$client->name.' ## client ID:'.$client->id);
 	my $started = time();
 
@@ -492,11 +493,11 @@ sub sortTracks {
 
 	# By artist > album > disc no. > track no.
 	} elsif ($sortOption == 3) {
-		@tracks = sort {lc($a->artist->namesort) cmp lc($b->artist->namesort) || lc($a->album->namesort) cmp lc($b->album->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @tracks;
+		@tracks = sort {namesortLower($a->artist) cmp namesortLower($b->artist) || lc($a->album->namesort) cmp lc($b->album->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @tracks;
 
 	# By album > artist > disc no. > track no.
 	} elsif ($sortOption == 4) {
-		@tracks = sort {lc($a->album->namesort) cmp lc($b->album->namesort) || lc($a->artist->namesort) cmp lc($b->artist->namesort) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @tracks;
+		@tracks = sort {lc($a->album->namesort) cmp lc($b->album->namesort) || namesortLower($a->artist) cmp namesortLower($b->artist) || ($a->disc || 0) <=> ($b->disc || 0) || ($a->tracknum || 0) <=> ($b->tracknum || 0)} @tracks;
 
 	# By album > disc no. > track no.
 	} elsif ($sortOption == 5) {
@@ -504,7 +505,7 @@ sub sortTracks {
 
 	# By first genre
 	} elsif ($sortOption == 6) {
-		@tracks = sort {lc($a->genre->namesort) cmp lc($b->genre->namesort)} @tracks;
+		@tracks = sort {namesortLower($a->genre) cmp namesortLower($b->genre)} @tracks;
 
 	# By year
 	} elsif ($sortOption == 7) {
@@ -567,25 +568,41 @@ sub sortTracks {
 
 	# By composer
 	} elsif ($sortOption == 21) {
-		@tracks = sort {lc($a->composer->namesort) cmp lc($b->composer->namesort)} @tracks;
+		@tracks = map {$_->[1]} sort {$a->[0] cmp $b->[0]} map {[contributorNamesortLower($_, 'composer'), $_]} @tracks;
 
 	# By conductor
 	} elsif ($sortOption == 22) {
-		@tracks = sort {lc($a->conductor->namesort) cmp lc($b->conductor->namesort)} @tracks;
+		@tracks = map {$_->[1]} sort {$a->[0] cmp $b->[0]} map {[contributorNamesortLower($_, 'conductor'), $_]} @tracks;
 
 	# By band
 	} elsif ($sortOption == 23) {
-		@tracks = sort {lc($a->band->namesort) cmp lc($b->band->namesort)} @tracks;
+		@tracks = map {$_->[1]} sort {$a->[0] cmp $b->[0]} map {[contributorNamesortLower($_, 'band'), $_]} @tracks;
 	}
 
 	return @tracks;
+}
+
+sub namesortLower {
+	my $obj = shift;
+	return $obj ? lc($obj->namesort) : '';
+}
+
+sub contributorNamesortLower {
+	my ($track, $method) = @_;
+	my ($obj) = $track->$method;
+	return $obj ? lc($obj->namesort) : '';
 }
 
 
 # export static playlists with new paths/file extensions
 sub exportPlaylistsToFiles {
 	my $playlistID = shift;
-main::INFOLOG && $log->is_info && $log->info('playlistID = '.Data::Dump::dump($playlistID));
+	main::DEBUGLOG && $log->is_debug && $log->debug('playlistID = '.Data::Dump::dump($playlistID));
+
+	if (Slim::Music::Import->stillScanning) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('not available until library scan is completed');
+		return;
+	}
 
 	my $status_exportingtoplaylistfiles = $prefs->get('status_exportingtoplaylistfiles');
 	if ($status_exportingtoplaylistfiles == 1) {
@@ -598,7 +615,10 @@ main::INFOLOG && $log->is_info && $log->info('playlistID = '.Data::Dump::dump($p
 	my $started = time();
 
 	my $playlist = Slim::Schema->find('Playlist', $playlistID);
-	return if !blessed($playlist);
+	if (!blessed($playlist)) {
+		$prefs->set('status_exportingtoplaylistfiles', 0);
+		return;
+	}
 
 	my @PLtracks = $playlist->tracks;
 	my $trackCount = scalar(@PLtracks);
@@ -619,7 +639,7 @@ main::INFOLOG && $log->is_info && $log->info('playlistID = '.Data::Dump::dump($p
 		print $output '# contains '.$trackCount.($trackCount == 1 ? ' track' : ' tracks')."\n\n";
 		for my $thisTrack (@PLtracks) {
 			my $thisTrackURL = $thisTrack->get('url');
-			my $thisTrackURL_extURL = changeExportFilePath($thisTrackURL, 1) if ($thisTrack->get('remote') != 1);
+			my $thisTrackURL_extURL = ($thisTrack->get('remote') != 1) ? changeExportFilePath($thisTrackURL, 1) : undef;
 			print $output '#EXTURL:'.$thisTrackURL_extURL."\n" if $thisTrackURL_extURL && $thisTrackURL_extURL ne '';
 
 			my $thisTrackPath = Slim::Utils::Unicode::utf8decode_locale(pathForItem($thisTrackURL));
@@ -792,7 +812,7 @@ sub getTrackInfo {
 	main::DEBUGLOG && $log->is_debug && $log->debug('thisconfigID = '.$thisconfigID);
 
 	if (Slim::Music::Import->stillScanning) {
-		$log->warn('Warning: not available until library scan is completed');
+		main::DEBUGLOG && $log->is_debug && $log->debug('not available until library scan is completed');
 		return;
 	}
 
@@ -837,7 +857,7 @@ sub getTitleFormat {
 	my $TF_string = '';
 
 	if (Slim::Music::Import->stillScanning) {
-		$log->warn('Warning: not available until library scan is completed');
+		main::DEBUGLOG && $log->is_debug && $log->debug('not available until library scan is completed');
 		return $TF_string;
 	}
 	main::DEBUGLOG && $log->is_debug && $log->debug('getting value for title format ID = '.$thisconfigID);
@@ -868,7 +888,7 @@ sub getTitleFormat {
 	my $thisconfig = $configmatrix->{$thisconfigID};
 	my $titleformatname = $thisconfig->{'titleformatname'};
 	my $titleformatdisplaystring = $thisconfig->{'titleformatdisplaystring'};
-	if (($titleformatname ne '') && ($titleformatdisplaystring ne '')) {
+	if ((($titleformatname // '') ne '') && (($titleformatdisplaystring // '') ne '')) {
 		my $thiscomment = $track->comment;
 		if (defined $thiscomment && $thiscomment ne '') {
 			if (index(lc($thiscomment), lc($thisconfig->{'searchstring'})) != -1) {
@@ -1079,6 +1099,14 @@ sub _getSimilarTrackTitlesHandler {
 sub _getSimilarTrackTitles_web {
 	my ($client, $params, $callback, $httpClient, $response) = @_;
 
+	if (Slim::Music::Import->stillScanning) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('not available until library scan is completed');
+		$params->{scanning} = 1;
+		$params->{trackcount} = 0;
+		$params->{pagetitlestringkey} = ($params->{scope} && $params->{scope} eq 'any') ? 'PLUGIN_POTPOURRI_CONTEXTMENU_SIMILARTRACKTITLES' : 'PLUGIN_POTPOURRI_CONTEXTMENU_SIMILARTRACKTITLESBYARTIST';
+		return Slim::Web::HTTP::filltemplatefile('plugins/PotPourri/html/showsimilartracktitleslist.html', $params);
+	}
+
 	## execute action if action and action track id(s) provided
 	my $action = $params->{'action'};
 	main::DEBUGLOG && $log->is_debug && $log->debug('action = '.Data::Dump::dump($action));
@@ -1110,8 +1138,9 @@ sub _getSimilarTrackTitles_web {
 			$tracktitle .= getRatingTextLine($similarTrack->rating);
 		}
 		my $artworkID = $similarTrack->album->artwork;
-		my $artistname = trimStringLength($similarTrack->artist->name, 80);
-		my $artistID = $similarTrack->artist->id;
+		my $artist = $similarTrack->artist;
+		my $artistname = $artist ? trimStringLength($artist->name, 80) : '';
+		my $artistID = $artist ? $artist->id : '';
 		my $albumname = trimStringLength($similarTrack->album->name, 80);
 		my $albumID = $similarTrack->album->id;
 
@@ -1143,8 +1172,18 @@ sub _getSimilarTrackTitles_jive {
 		$request->setStatusNeedsClient();
 		return;
 	}
-	my $trackID = $request->getParam('_trackid');
 
+	if (Slim::Music::Import->stillScanning) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('not available until library scan is completed');
+		$request->addResultLoop('item_loop', 0, 'text', string('PLUGIN_POTPOURRI_NOTAVAILABLE_SCANNING'));
+		$request->addResultLoop('item_loop', 0, 'style', 'itemNoAction');
+		$request->addResult('offset', 0);
+		$request->addResult('count', 1);
+		$request->setStatusDone();
+		return;
+	}
+
+	my $trackID = $request->getParam('_trackid');
 	return unless $trackID;
 	main::DEBUGLOG && $log->is_debug && $log->debug('trackID = '.$trackID);
 
@@ -1187,7 +1226,7 @@ sub _getSimilarTrackTitles_jive {
 			$tracktitle .= getRatingTextLine($similarTrack->rating);
 		}
 		my $sepchar = HTML::Entities::decode_entities('&#x2022;'); # "bullet"
-		my $artistname = $similarTrack->artist->name;
+		my $artistname = $similarTrack->artist ? $similarTrack->artist->name : '';
 		$artistname = trimStringLength($artistname, 70);
 		my $albumname = $similarTrack->album->name;
 		$albumname = trimStringLength($albumname, 70);
@@ -1222,6 +1261,52 @@ sub _getSimilarTrackTitles_jive {
 	}
 
 	$request->addResult('offset', 0);
+	$request->addResult('count', $cnt);
+	$request->setStatusDone();
+}
+
+sub _getSimilarTrackTitles_query {
+	my $request = shift;
+	my $anyArtist = $request->isQuery([['potpourri'],['getsimilartracktitles']]) ? 1 : 0;
+
+	unless ($anyArtist || $request->isQuery([['potpourri'],['getsimilartracktitlesbysameartist']])) {
+		$log->warn('incorrect command');
+		$request->setStatusBadDispatch();
+		return;
+	}
+
+	if (Slim::Music::Import->stillScanning) {
+		main::DEBUGLOG && $log->is_debug && $log->debug('not available until library scan is completed');
+		$request->addResult('scanning', 1);
+		$request->addResult('count', 0);
+		$request->setStatusDone();
+		return;
+	}
+
+	my $trackID = $request->getParam('track_id');
+	if (!defined $trackID || $trackID !~ /^\d+$/ || !Slim::Schema->rs('Track')->find($trackID)) {
+		$log->warn('valid track_id required!');
+		$request->setStatusBadParams();
+		return;
+	}
+
+	my $similarTracks = ($anyArtist ? _getSimilarTrackTitles($trackID) : _getSimilarTrackTitlesBySameArtist($trackID)) // [];
+
+	my $cnt = 0;
+	foreach my $similarTrack (@{$similarTracks}) {
+		$request->addResultLoop('similartracks_loop', $cnt, 'id', $similarTrack->id);
+		$request->addResultLoop('similartracks_loop', $cnt, 'title', $similarTrack->title);
+		if ($similarTrack->artist) {
+			$request->addResultLoop('similartracks_loop', $cnt, 'artist_id', $similarTrack->artist->id);
+			$request->addResultLoop('similartracks_loop', $cnt, 'artist', $similarTrack->artist->name);
+		}
+		$request->addResultLoop('similartracks_loop', $cnt, 'album_id', $similarTrack->album->id);
+		$request->addResultLoop('similartracks_loop', $cnt, 'album', $similarTrack->album->name);
+		$request->addResultLoop('similartracks_loop', $cnt, 'coverid', $similarTrack->coverid) if $similarTrack->coverid;
+		$request->addResultLoop('similartracks_loop', $cnt, 'rating', $similarTrack->rating) if $rl_enabled && $similarTrack->rating;
+		$cnt++;
+	}
+
 	$request->addResult('count', $cnt);
 	$request->setStatusDone();
 }
@@ -1323,8 +1408,9 @@ sub _getActionsMenu {
 sub _getSimilarTrackTitlesBySameArtist {
 	require String::LCSS;
 	my $curTrackID = shift;
-	return if !$curTrackID;
+	return [] if !$curTrackID;
 	my $curTrack = Slim::Schema->rs('Track')->find($curTrackID);
+	return [] if !$curTrack;
 
 	my $started = time();
 	my $curTitle = $curTrack->title;
@@ -1354,8 +1440,9 @@ sub _getSimilarTrackTitlesBySameArtist {
 sub _getSimilarTrackTitles {
 	require String::LCSS;
 	my $curTrackID = shift;
-	return if !$curTrackID;
+	return [] if !$curTrackID;
 	my $curTrack = Slim::Schema->rs('Track')->find($curTrackID);
+	return [] if !$curTrack;
 
 	my $started = time();
 	my $curTitle = $curTrack->title;
@@ -1378,7 +1465,7 @@ sub _getSimilarTrackTitles {
 			$log->error("Error executing SQL: $@");
 		}
 		$sth->finish();
-		@{$similarTracks} = sort {lc($a->artist->namesort) cmp lc($b->artist->namesort)} @{$similarTracks};
+		@{$similarTracks} = sort {namesortLower($a->artist) cmp namesortLower($b->artist)} @{$similarTracks};
 		main::DEBUGLOG && $log->is_debug && $log->debug('Exec time = '.(time()-$started).' secs.');
 	}
 	return $similarTracks;
@@ -1410,7 +1497,7 @@ sub _filterSimilarTracksByLCSS {
 				} else {
 					main::INFOLOG && $log->is_info && $log->info("--- Similarity of track is above specified minimum value.");
 					my $thisTrack = Slim::Schema->rs('Track')->find($candidateTrackID);
-					push @similarTracks, $thisTrack;
+					push @similarTracks, $thisTrack if $thisTrack;
 				}
 			} else {
 				main::INFOLOG && $log->is_info && $log->info("--- Tracks don't have a common substring with the minimum length.");
@@ -1578,25 +1665,48 @@ sub APCqueryBatch {
 	return \%result;
 }
 
-sub getTrackIdForContextMenu {
-	my ($client, $url, $track) = @_;
-	if ($track->id) {
-		return {
-			type => 'text',
-			name => 'Track ID: '.$track->id,
-			itemvalue => $track->id,
-			itemid => $track->id,
-		};
-	} else {
-		return;
+sub registerContextMenuIDs {
+	main::DEBUGLOG && $log->is_debug && $log->debug('De-/reregistering ID infoproviders');
+	# The artist menu is also used for composers, conductors and bands
+	my @menus = (
+		['Track', 'Slim::Menu::TrackInfo', 'moreinfo'],
+		['Artist', 'Slim::Menu::ArtistInfo'],
+		['Album', 'Slim::Menu::AlbumInfo'],
+		['Genre', 'Slim::Menu::GenreInfo'],
+		['Playlist', 'Slim::Menu::PlaylistInfo'],
+	);
+	foreach my $menu (@menus) {
+		my ($label, $menuClass, $parent) = @{$menu};
+		my $regID = 'zppt_info'.lc($label).'id';
+		$menuClass->deregisterInfoProvider($regID);
+		next if !$prefs->get('displayids');
+		$menuClass->registerInfoProvider($regID => (
+			($parent ? (parent => $parent) : ()),
+			isa => 'bottom',
+			func => sub { return getIdForContextMenu($label, @_); }
+		));
 	}
+}
+
+sub getIdForContextMenu {
+	my ($label, $client, $url, $obj) = @_;
+	my $id = blessed($obj) ? $obj->id : undef;
+	return unless $id;
+	return {
+		type => 'text',
+		name => $label.' ID: '.$id,
+		itemvalue => $id,
+		itemid => $id,
+	};
 }
 
 sub displayMessage {
 	my ($client, $messageType) = @_;
 
 	my $message = '';
-	if ($messageType == 1) {
+	if ($messageType eq 'scanning') {
+		$message = string('PLUGIN_POTPOURRI_NOTAVAILABLE_SCANNING');
+	} elsif ($messageType) {
 		$message = string('PLUGIN_POTPOURRI_PL_SORTORDER_FAILED');
 	} else {
 		$message = string('PLUGIN_POTPOURRI_PL_SORTORDER_SUCCESS');

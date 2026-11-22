@@ -58,7 +58,7 @@
 </form>
 <br><br><br>
 <div class="wrapper warning">
-	[% IF failed %][% "PLUGIN_POTPOURRI_PL_SORTORDER_FAILED" | string %][% ELSE %][% "PLUGIN_POTPOURRI_PL_SORTORDER_WARNING" | string %][% END %]
+	[% IF scanning %][% "PLUGIN_POTPOURRI_NOTAVAILABLE_SCANNING" | string %][% ELSIF failed %][% "PLUGIN_POTPOURRI_PL_SORTORDER_FAILED" | string %][% ELSE %][% "PLUGIN_POTPOURRI_PL_SORTORDER_WARNING" | string %][% END %]
 </div>
 
 [% IF orderchanged %]

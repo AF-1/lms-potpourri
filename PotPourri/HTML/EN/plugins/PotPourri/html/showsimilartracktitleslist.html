@@ -27,16 +27,16 @@
 	[% odd = 1 %]
 	[% IF trackcount == 0 %]
 		[%- WRAPPER contentitem %]
-		<span>[% "PLUGIN_POTPOURRI_CONTEXTMENU_NOSIMILARTRACKTITLESFOUND" | string %]</span>
+		<span>[% IF scanning %][% "PLUGIN_POTPOURRI_NOTAVAILABLE_SCANNING" | string %][% ELSIF scope == 'any' %][% "PLUGIN_POTPOURRI_CONTEXTMENU_NOSIMILARTRACKTITLESFOUND_ANYARTIST" | string %][% ELSE %][% "PLUGIN_POTPOURRI_CONTEXTMENU_NOSIMILARTRACKTITLESFOUND" | string %][% END %]</span>
 		[% END %]
 	[% ELSE %]
 		[% IF trackcount > 1 %]
 			[% BLOCK controls_allsongs %]
-				[% WRAPPER addlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=add&amp;actiontrackids=[% alltrackids %]&amp;player=[% playerURI %]"[% END %]
+				[% WRAPPER addlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitleslist.html?trackid=[% trackid %]&amp;scope=[% scope %]&amp;action=add&amp;actiontrackids=[% alltrackids %]&amp;player=[% playerURI %]"[% END %]
 				[% IF systemSkin != 'Classic' %]
-				[% WRAPPER insertlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=insert&amp;actiontrackids=[% alltrackids %]&amp;player=[% playerURI %]"[% END %]
+				[% WRAPPER insertlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitleslist.html?trackid=[% trackid %]&amp;scope=[% scope %]&amp;action=insert&amp;actiontrackids=[% alltrackids %]&amp;player=[% playerURI %]"[% END %]
 				[% END %]
-				[% WRAPPER playlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=load&amp;actiontrackids=[% alltrackids %]&amp;player=[% playerURI %]"[% END %]
+				[% WRAPPER playlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitleslist.html?trackid=[% trackid %]&amp;scope=[% scope %]&amp;action=load&amp;actiontrackids=[% alltrackids %]&amp;player=[% playerURI %]"[% END %]
 			[% END %]
 			[%- WRAPPER contentitem controls='controls_allsongs' %]
 			<span class="pptwrapper">
@@ -51,11 +51,11 @@
 
 		[% FOREACH similartrack IN similartracktitles %]
 			[% BLOCK controls %]
-				[% WRAPPER addlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=add&amp;actiontrackids=[% similartrack.trackid %]&amp;player=[% playerURI %]"[% END %]
+				[% WRAPPER addlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitleslist.html?trackid=[% trackid %]&amp;scope=[% scope %]&amp;action=add&amp;actiontrackids=[% similartrack.trackid %]&amp;player=[% playerURI %]"[% END %]
 				[% IF systemSkin != 'Classic' %]
-				[% WRAPPER insertlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=insert&amp;actiontrackids=[% similartrack.trackid %]&amp;player=[% playerURI %]"[% END %]
+				[% WRAPPER insertlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitleslist.html?trackid=[% trackid %]&amp;scope=[% scope %]&amp;action=insert&amp;actiontrackids=[% similartrack.trackid %]&amp;player=[% playerURI %]"[% END %]
 				[% END %]
-				[% WRAPPER playlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitlesbysameartistlist.html?trackid=[% trackid %]&amp;action=load&amp;actiontrackids=[% similartrack.trackid %]&amp;player=[% playerURI %]"[% END %]
+				[% WRAPPER playlink noTarget=1 -%]href="[% webroot %]plugins/PotPourri/html/showsimilartracktitleslist.html?trackid=[% trackid %]&amp;scope=[% scope %]&amp;action=load&amp;actiontrackids=[% similartrack.trackid %]&amp;player=[% playerURI %]"[% END %]
 			[% END %]
 			[%- WRAPPER contentitem controls='controls' %]
 			<span class="pptwrapper">
